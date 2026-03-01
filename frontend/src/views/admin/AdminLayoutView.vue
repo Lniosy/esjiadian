@@ -1,16 +1,32 @@
 <template>
-  <div class="page-stack">
-    <section class="hero-panel admin-hero">
-      <h1 class="hero-title">管理后台</h1>
-      <p class="hero-subtitle">运营指标、系统监控、治理审计、风控管理一体化工作台。</p>
-      <div class="subnav">
-        <router-link to="/admin/overview"><el-button :type="is('/admin/overview') ? 'primary' : 'default'">概览与趋势</el-button></router-link>
-        <router-link to="/admin/monitor"><el-button :type="is('/admin/monitor') ? 'primary' : 'default'">系统监控</el-button></router-link>
-        <router-link to="/admin/governance"><el-button :type="is('/admin/governance') ? 'primary' : 'default'">治理与审计</el-button></router-link>
-        <router-link to="/admin/risk"><el-button :type="is('/admin/risk') ? 'primary' : 'default'">风控与用户</el-button></router-link>
+  <div class="admin-layout">
+    <!-- 管理后台头部 -->
+    <div class="admin-header">
+      <div class="admin-header-inner">
+        <div class="admin-title-group">
+          <span class="admin-icon">⚙️</span>
+          <span class="admin-title">管理后台</span>
+          <span class="admin-badge">PRO</span>
+        </div>
+        <!-- Tab 导航 -->
+        <nav class="admin-tabs">
+          <router-link
+            v-for="tab in tabs"
+            :key="tab.path"
+            :to="tab.path"
+            class="admin-tab"
+            :class="{ active: is(tab.path) }"
+          >
+            <span class="tab-icon">{{ tab.icon }}</span>
+            {{ tab.label }}
+          </router-link>
+        </nav>
       </div>
-    </section>
-    <router-view />
+    </div>
+
+    <div class="admin-content">
+      <router-view />
+    </div>
   </div>
 </template>
 
@@ -19,12 +35,103 @@ import { useRoute } from 'vue-router'
 
 const route = useRoute()
 const is = (path) => route.path === path
+
+const tabs = [
+  { path: '/admin/overview',   icon: '📊', label: '概览趋势' },
+  { path: '/admin/monitor',    icon: '🖥️', label: '系统监控' },
+  { path: '/admin/governance', icon: '🏛️', label: '治理审计' },
+  { path: '/admin/risk',       icon: '🛡️', label: '风控用户' },
+]
 </script>
 
 <style scoped>
-.admin-hero {
-  background:
-    linear-gradient(145deg, rgba(19, 35, 55, 0.94), rgba(37, 62, 95, 0.9)),
-    radial-gradient(circle at 88% 8%, rgba(255, 255, 255, 0.25), transparent 36%);
+.admin-layout {
+  min-height: calc(100vh - 100px);
+  background: #f7f8fa;
+}
+
+.admin-header {
+  background: #fff;
+  border-bottom: 2px solid #f0ebe8;
+  border-radius: 14px 14px 0 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  margin-bottom: 0;
+}
+
+.admin-header-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  height: 58px;
+}
+
+.admin-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.admin-icon {
+  font-size: 20px;
+}
+
+.admin-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.admin-badge {
+  background: linear-gradient(135deg, #FF5722, #FF8C00);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  height: 100%;
+}
+
+.admin-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #555;
+  text-decoration: none;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.admin-tab:hover {
+  background: #fff3ee;
+  color: var(--c-primary, #FF5722);
+}
+
+.admin-tab.active {
+  background: var(--c-primary, #FF5722);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 8px;
+}
+
+.tab-icon {
+  font-size: 14px;
+}
+
+.admin-content {
+  padding: 16px 0 0;
 }
 </style>

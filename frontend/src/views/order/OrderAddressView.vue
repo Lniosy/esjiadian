@@ -51,12 +51,12 @@ import { userApi } from '../../api/modules'
 const addresses = ref([])
 const selectedAddressId = ref(Number(localStorage.getItem('selectedAddressId') || 0) || null)
 const addressForm = reactive({
-  receiverName: '张三',
-  receiverPhone: '13800000000',
-  province: '上海市',
-  city: '上海市',
-  district: '浦东新区',
-  detailAddress: '测试路100号',
+  receiverName: '',
+  receiverPhone: '',
+  province: '',
+  city: '',
+  district: '',
+  detailAddress: '',
   isDefault: true
 })
 

@@ -40,24 +40,155 @@
     </el-card>
 
     <el-card v-if="overview" class="page-card">
-      <template #header><div class="page-head"><h3>在售商品</h3></div></template>
+      <template #header>
+        <div class="page-head">
+          <h3>在售商品 <span class="count-tip">（{{ (overview.products || []).length }} 件）</span></h3>
+          <el-button type="primary" @click="openProductDialog(null)">＋ 新增商品</el-button>
+        </div>
+      </template>
       <el-table empty-text="暂无数据" :data="overview.products || []">
-        <el-table-column prop="id" label="商品编号" width="90" />
-        <el-table-column prop="title" label="标题" />
-        <el-table-column prop="price" label="价格" width="120" />
-        <el-table-column label="状态" width="120">
+        <el-table-column prop="id" label="编号" width="70" />
+        <el-table-column prop="title" label="标题" min-width="160" show-overflow-tooltip />
+        <el-table-column prop="price" label="价格" width="90">
+          <template #default="scope">¥{{ scope.row.price }}</template>
+        </el-table-column>
+        <el-table-column prop="brand" label="品牌/型号" width="140">
+          <template #default="scope">{{ scope.row.brand }} {{ scope.row.model }}</template>
+        </el-table-column>
+        <el-table-column label="状态" width="100">
           <template #default="scope">
-            <el-tag>{{ productStatusText(scope.row.status) }}</el-tag>
+            <el-tag :type="scope.row.status === 'ON_SHELF' ? 'success' : scope.row.status === 'SOLD' ? 'info' : 'warning'" size="small">
+              {{ productStatusText(scope.row.status) }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="图片" width="260">
+        <el-table-column label="操作" width="200">
           <template #default="scope">
-            <a v-if="scope.row.image" :href="scope.row.image" target="_blank">查看图片</a>
-            <span v-else>-</span>
+            <el-button size="small" @click="openProductDialog(scope.row)">编辑</el-button>
+            <el-button
+              size="small"
+              :type="scope.row.status === 'ON_SHELF' ? 'warning' : 'success'"
+              :disabled="scope.row.status === 'SOLD'"
+              @click="toggleShelf(scope.row)"
+            >
+              {{ scope.row.status === 'ON_SHELF' ? '下架' : '上架' }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
     </el-card>
+
+  <!-- 新增/编辑商品弹窗 -->
+  <el-dialog
+    v-model="productDialog.visible"
+    :title="productDialog.editId ? '编辑商品' : '新增商品'"
+    width="620px"
+    :close-on-click-modal="false"
+    @closed="resetProductDialog"
+  >
+    <el-form :model="productForm" label-width="90px" class="product-form">
+      <el-form-item label="商品标题" required>
+        <el-input v-model="productForm.title" placeholder="如：海尔双门冰箱 BCD-216STPT" maxlength="60" show-word-limit />
+      </el-form-item>
+      <el-row :gutter="12">
+        <el-col :span="12">
+          <el-form-item label="品牌" required>
+            <el-input v-model="productForm.brand" placeholder="如：海尔、美的" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="型号" required>
+            <el-input v-model="productForm.model" placeholder="如：BCD-216STPT" />
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row :gutter="12">
+        <el-col :span="12">
+          <el-form-item label="售价（元）" required>
+            <el-input-number v-model="productForm.price" :min="1" :precision="2" style="width:100%" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="原价（元）">
+            <el-input-number v-model="productForm.originalPrice" :min="0" :precision="2" style="width:100%" />
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row :gutter="12">
+        <el-col :span="12">
+          <el-form-item label="成色" required>
+            <el-select v-model="productForm.conditionLevel" style="width:100%">
+              <el-option label="全新" value="NEW" />
+              <el-option label="九成新" value="LIKE_NEW" />
+              <el-option label="七成新" value="GOOD" />
+              <el-option label="一般" value="FAIR" />
+            </el-select>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="功能状态" required>
+            <el-select v-model="productForm.functionStatus" style="width:100%">
+              <el-option label="功能完好" value="FULLY_FUNCTIONAL" />
+              <el-option label="轻微问题" value="MINOR_ISSUE" />
+              <el-option label="需要维修" value="NEEDS_REPAIR" />
+            </el-select>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row :gutter="12">
+        <el-col :span="12">
+          <el-form-item label="所在地区" required>
+            <el-input v-model="productForm.region" placeholder="如：上海市浦东新区" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="交易方式" required>
+            <el-select v-model="productForm.tradeMethods" style="width:100%">
+              <el-option label="同城自提" value="同城自提" />
+              <el-option label="快递邮寄" value="快递邮寄" />
+              <el-option label="均可" value="均可" />
+            </el-select>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-form-item label="类目" required>
+        <el-select v-model="productForm.categoryId" style="width:100%">
+          <el-option label="电视" :value="1" />
+          <el-option label="冰箱" :value="2" />
+          <el-option label="洗衣机" :value="3" />
+          <el-option label="空调" :value="4" />
+          <el-option label="电脑" :value="5" />
+          <el-option label="手机" :value="6" />
+          <el-option label="音响" :value="7" />
+          <el-option label="其他家电" :value="8" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="购买日期">
+        <el-date-picker v-model="productForm.purchaseDate" type="date" value-format="YYYY-MM-DD" placeholder="选择购买日期" style="width:100%" />
+      </el-form-item>
+      <el-form-item label="维修历史">
+        <el-input v-model="productForm.repairHistory" placeholder="如：2023年更换压缩机，无其他维修记录" />
+      </el-form-item>
+      <el-form-item label="商品描述" required>
+        <el-input v-model="productForm.description" type="textarea" :rows="3" placeholder="详细描述商品使用情况、外观状态等…" maxlength="500" show-word-limit />
+      </el-form-item>
+      <el-form-item label="图片链接">
+        <div class="image-input-list">
+          <div v-for="(img, idx) in productForm.images" :key="idx" class="img-input-row">
+            <el-input v-model="productForm.images[idx]" :placeholder="`图片链接 ${idx+1}`" style="flex:1" />
+            <el-button type="danger" text circle @click="productForm.images.splice(idx, 1)">✕</el-button>
+          </div>
+          <el-button size="small" text type="primary" @click="productForm.images.push('')">＋ 添加图片链接</el-button>
+        </div>
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <el-button @click="productDialog.visible = false">取消</el-button>
+      <el-button type="primary" :loading="productDialog.submitting" @click="submitProduct">
+        {{ productDialog.editId ? '保存修改' : '创建并上架' }}
+      </el-button>
+    </template>
+  </el-dialog>
 
     <el-card v-if="overview" class="page-card">
       <template #header><div class="page-head"><h3>历史评价</h3></div></template>
@@ -107,12 +238,110 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { evaluationApi, shopApi } from '../../api/modules'
+import { evaluationApi, productApi, shopApi } from '../../api/modules'
 import { productStatusText } from '../../utils/display'
 
 const form = reactive({ id: null, name: '', logoUrl: '', intro: '', categories: '', region: '' })
 const overview = ref(null)
 const ratingDetail = ref(null)
+
+// ---- 商品新增/编辑对话框 ----
+const productDialog = reactive({ visible: false, editId: null, submitting: false })
+const defaultProductForm = () => ({
+  title: '', categoryId: 1, brand: '', model: '',
+  purchaseDate: '', conditionLevel: 'LIKE_NEW', functionStatus: 'FULLY_FUNCTIONAL',
+  repairHistory: '', description: '', videoUrl: '',
+  price: null, originalPrice: null, region: form.region || '',
+  tradeMethods: '均可', images: []
+})
+const productForm = reactive(defaultProductForm())
+
+const resetProductDialog = () => {
+  productDialog.editId = null
+  Object.assign(productForm, defaultProductForm())
+}
+
+const openProductDialog = (row) => {
+  resetProductDialog()
+  if (row) {
+    productDialog.editId = row.id
+    Object.assign(productForm, {
+      title: row.title || '',
+      categoryId: row.categoryId || 1,
+      brand: row.brand || '',
+      model: row.model || '',
+      purchaseDate: row.purchaseDate || '',
+      conditionLevel: row.conditionLevel || 'LIKE_NEW',
+      functionStatus: row.functionStatus || 'FULLY_FUNCTIONAL',
+      repairHistory: row.repairHistory || '',
+      description: row.description || '',
+      videoUrl: row.videoUrl || '',
+      price: row.price ? Number(row.price) : null,
+      originalPrice: row.originalPrice ? Number(row.originalPrice) : null,
+      region: row.region || '',
+      tradeMethods: row.tradeMethods || '均可',
+      images: Array.isArray(row.images) ? [...row.images] : (row.image ? [row.image] : [])
+    })
+  } else {
+    productForm.region = form.region || ''
+  }
+  productDialog.visible = true
+}
+
+const submitProduct = async () => {
+  if (!productForm.title || !productForm.brand || !productForm.model || !productForm.price || !productForm.description || !productForm.region) {
+    ElMessage.warning('请填写标题、品牌、型号、价格、描述、地区')
+    return
+  }
+  const payload = {
+    title: productForm.title,
+    categoryId: productForm.categoryId,
+    brand: productForm.brand,
+    model: productForm.model,
+    purchaseDate: productForm.purchaseDate || null,
+    conditionLevel: productForm.conditionLevel,
+    functionStatus: productForm.functionStatus,
+    repairHistory: productForm.repairHistory || null,
+    description: productForm.description,
+    videoUrl: productForm.videoUrl || null,
+    price: productForm.price,
+    originalPrice: productForm.originalPrice || null,
+    region: productForm.region,
+    tradeMethods: productForm.tradeMethods,
+    images: productForm.images.filter(Boolean)
+  }
+  productDialog.submitting = true
+  try {
+    if (productDialog.editId) {
+      await productApi.update(productDialog.editId, payload)
+      ElMessage.success('商品已更新')
+    } else {
+      const newProduct = await productApi.create(payload)
+      await productApi.onShelf(newProduct.id).catch(() => {})
+      ElMessage.success('商品已创建并上架')
+    }
+    productDialog.visible = false
+    await loadOverview()
+  } finally {
+    productDialog.submitting = false
+  }
+}
+
+const toggleShelf = async (row) => {
+  try {
+    if (row.status === 'ON_SHELF') {
+      await productApi.offShelf(row.id)
+      ElMessage.success('已下架')
+    } else {
+      await productApi.onShelf(row.id)
+      ElMessage.success('已上架')
+    }
+    await loadOverview()
+  } catch (e) {
+    ElMessage.error(e?.message || '操作失败')
+  }
+}
+
 const ratingBars = computed(() => {
   const total = Number(ratingDetail.value?.total || 0)
   return [5, 4, 3, 2, 1].map((star) => {
@@ -162,8 +391,33 @@ onMounted(() => {
   max-width: 920px;
 }
 
+.count-tip {
+  font-size: 13px;
+  font-weight: 400;
+  color: #999;
+}
+
 .img-tag {
   margin-right: 6px;
+}
+
+/* 商品表单 */
+.product-form {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.image-input-list {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+
+.img-input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .tag-wrap {

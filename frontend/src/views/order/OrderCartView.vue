@@ -10,6 +10,20 @@
       <el-alert type="info" :closable="false" show-icon>
         请先在“地址管理”设置默认地址，再在这里创建订单。
       </el-alert>
+      <!-- 下单选项 -->
+      <div class="order-options">
+        <div class="option-row">
+          <span class="option-label">交易方式</span>
+          <el-radio-group v-model="orderOptions.tradeMethod">
+            <el-radio label="快递邮寄">快递邮寄</el-radio>
+            <el-radio label="同城自提">同城自提</el-radio>
+          </el-radio-group>
+        </div>
+        <div class="option-row">
+          <span class="option-label">买家备注</span>
+          <el-input v-model="orderOptions.buyerNote" placeholder="如：请尽快发货（可不填）" style="flex:1;" maxlength="100" />
+        </div>
+      </div>
       <div class="kpi-grid" style="margin-top: 12px;">
         <article class="kpi-item">
           <div class="kpi-label">购物车商品</div>
@@ -55,13 +69,14 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { orderApi } from '../../api/modules'
 
 const cartProducts = ref([])
 const selectedAddressId = computed(() => Number(localStorage.getItem('selectedAddressId') || 0) || null)
 const validCount = computed(() => cartProducts.value.filter((i) => i.valid).length)
+const orderOptions = reactive({ tradeMethod: '快递邮寄', buyerNote: '' })
 
 const loadCart = async () => {
   cartProducts.value = await orderApi.cartList()
@@ -81,8 +96,8 @@ const createOrder = async (productId) => {
   await orderApi.createOrder({
     productId,
     addressId: selectedAddressId.value,
-    tradeMethod: '快递邮寄',
-    buyerNote: '请尽快发货'
+    tradeMethod: orderOptions.tradeMethod,
+    buyerNote: orderOptions.buyerNote || ''
   })
   ElMessage.success('订单已创建')
   await loadCart()
@@ -97,5 +112,24 @@ onMounted(() => {
 .meta {
   color: #6f7c8c;
   font-size: 13px;
+}
+
+.order-options {
+  margin-top: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.option-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.option-label {
+  width: 70px;
+  font-size: 13px;
+  color: #637286;
+  flex-shrink: 0;
 }
 </style>

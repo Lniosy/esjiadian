@@ -19,7 +19,9 @@ export const productApi = {
   list: (params) => http.get('/api/products', { params }),
   detail: (id) => http.get(`/api/products/${id}`),
   create: (payload) => http.post('/api/products', payload),
-  onShelf: (id) => http.post(`/api/products/${id}/on-shelf`)
+  update: (id, payload) => http.put(`/api/products/${id}`, payload),
+  onShelf: (id) => http.post(`/api/products/${id}/on-shelf`),
+  offShelf: (id) => http.post(`/api/products/${id}/off-shelf`)
 }
 
 export const shopApi = {

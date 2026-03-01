@@ -110,12 +110,12 @@ const router = useRouter()
 const addresses = ref([])
 const selectedAddressId = ref(null)
 const addressForm = reactive({
-  receiverName: '张三',
-  receiverPhone: '13800000000',
-  province: '上海市',
-  city: '上海市',
-  district: '浦东新区',
-  detailAddress: '测试路100号',
+  receiverName: '',
+  receiverPhone: '',
+  province: '',
+  city: '',
+  district: '',
+  detailAddress: '',
   isDefault: true
 })
 
@@ -213,8 +213,9 @@ const cancel = async (row) => {
 }
 
 const ship = async (row) => {
-  await orderApi.ship(row.id, { logisticsCompany: 'SF', trackingNo: `SF${Date.now()}`, shipNote: '正常发货' })
-  await logisticsApi.save(row.id, { companyCode: 'SF', trackingNo: `SF${Date.now()}`, shipNote: '正常发货' })
+  const no = `SF${Date.now()}`
+  await orderApi.ship(row.id, { logisticsCompany: 'SF', trackingNo: no, shipNote: '正常发货' })
+  await logisticsApi.save(row.id, { companyCode: 'SF', trackingNo: no, shipNote: '正常发货' })
   ElMessage.success('发货成功')
   await loadOrders()
 }
