@@ -9,6 +9,7 @@ export const authApi = {
 
 export const userApi = {
   me: () => http.get('/api/users/me'),
+  publicProfile: (id) => http.get(`/api/users/${id}/public`),
   updateMe: (payload) => http.put('/api/users/me', payload),
   addresses: () => http.get('/api/users/me/addresses'),
   addAddress: (payload) => http.post('/api/users/me/addresses', payload)
@@ -23,6 +24,7 @@ export const productApi = {
 
 export const shopApi = {
   myShop: () => http.get('/api/shops/me'),
+  byUser: (userId) => http.get(`/api/shops/by-user/${userId}`),
   upsertMyShop: (payload) => http.put('/api/shops/me', payload),
   detail: (id) => http.get(`/api/shops/${id}`),
   overview: (id) => http.get(`/api/shops/${id}/overview`)

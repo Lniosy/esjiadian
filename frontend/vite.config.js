@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
+const proxyTarget = process.env.VITE_PROXY_TARGET || 'http://localhost:8080'
+
 export default defineConfig({
   plugins: [vue()],
   build: {
@@ -22,11 +24,11 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:8081',
+        target: proxyTarget,
         changeOrigin: true
       },
       '/ws': {
-        target: 'http://localhost:8081',
+        target: proxyTarget,
         ws: true
       }
     }

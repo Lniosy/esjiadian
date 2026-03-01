@@ -9,6 +9,7 @@ public record MonitorAlertEventDto(
         String status,
         Long ackBy,
         Long ackAt,
+        Long createdAt,
         Long updatedAt
 ) {
 }

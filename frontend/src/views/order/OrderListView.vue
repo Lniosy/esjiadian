@@ -1,74 +1,54 @@
 <template>
-  <div style="display:grid;gap:16px;">
-    <el-card>
-      <template #header><h3 style="margin:0;">地址管理</h3></template>
-      <el-form inline>
-        <el-form-item label="收件人"><el-input v-model="addressForm.receiverName" style="width:120px" /></el-form-item>
-        <el-form-item label="手机号"><el-input v-model="addressForm.receiverPhone" style="width:140px" /></el-form-item>
-        <el-form-item label="省"><el-input v-model="addressForm.province" style="width:100px" /></el-form-item>
-        <el-form-item label="市"><el-input v-model="addressForm.city" style="width:100px" /></el-form-item>
-        <el-form-item label="区"><el-input v-model="addressForm.district" style="width:100px" /></el-form-item>
-        <el-form-item label="详细"><el-input v-model="addressForm.detailAddress" style="width:220px" /></el-form-item>
-        <el-form-item><el-button type="primary" @click="createAddress">新增地址</el-button></el-form-item>
-      </el-form>
-      <el-radio-group v-model="selectedAddressId">
-        <el-radio v-for="a in addresses" :key="a.id" :label="a.id">
-          {{ a.receiverName }} {{ a.receiverPhone }} {{ a.province }}{{ a.city }}{{ a.district }}{{ a.detailAddress }}
-        </el-radio>
-      </el-radio-group>
-    </el-card>
-
-    <el-card>
-      <template #header><h3 style="margin:0;">购物车创建订单</h3></template>
-      <el-table empty-text="暂无数据" :data="cartProducts">
-        <el-table-column prop="productId" label="商品编号" width="100" />
-        <el-table-column prop="title" label="标题" />
-        <el-table-column prop="price" label="价格" width="100" />
-        <el-table-column label="状态" width="180">
-          <template #default="scope">
-            <el-tag :type="scope.row.valid ? 'success' : 'danger'">
-              {{ scope.row.valid ? '可下单' : (scope.row.invalidReason || '不可下单') }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="220">
-          <template #default="scope">
-            <el-button size="small" type="primary" :disabled="!scope.row.valid" @click="createOrder(scope.row.productId)">创建订单</el-button>
-            <el-button size="small" @click="removeCart(scope.row.productId)">移除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
-
-    <el-card>
-      <template #header>
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <h3 style="margin:0;">订单列表</h3>
-          <div>
-            <el-select v-model="orderView" style="width:130px;margin-right:8px;">
-              <el-option label="买家视图" value="buyer" />
-              <el-option label="卖家视图" value="seller" />
-              <el-option label="全部" value="all" />
-            </el-select>
-            <el-button @click="loadOrders">刷新</el-button>
-          </div>
+  <el-card class="page-card">
+    <template #header>
+      <div class="page-head">
+        <h3>订单流程与售后</h3>
+        <div class="actions">
+          <el-select v-model="orderView" style="width:130px;">
+            <el-option label="买家视图" value="buyer" />
+            <el-option label="卖家视图" value="seller" />
+            <el-option label="全部" value="all" />
+          </el-select>
+          <el-button @click="loadOrders">刷新</el-button>
         </div>
-      </template>
-      <el-table empty-text="暂无数据" :data="orders">
-        <el-table-column prop="id" label="订单编号" width="90" />
-        <el-table-column prop="productId" label="商品编号" width="90" />
-        <el-table-column label="状态" width="170">
-          <template #default="scope">
-            <el-tag>{{ orderStatusText(scope.row.status) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="退款状态" width="140">
-          <template #default="scope">
-            {{ refundStatusText(refundMap[scope.row.id]?.status) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" min-width="900">
-          <template #default="scope">
+      </div>
+    </template>
+
+    <div class="kpi-grid" style="margin-bottom: 12px;">
+      <article class="kpi-item">
+        <div class="kpi-label">订单总数</div>
+        <div class="kpi-value">{{ orders.length }}</div>
+      </article>
+      <article class="kpi-item">
+        <div class="kpi-label">待支付</div>
+        <div class="kpi-value">{{ statusCount('PENDING_PAYMENT') }}</div>
+      </article>
+      <article class="kpi-item">
+        <div class="kpi-label">待发货</div>
+        <div class="kpi-value">{{ statusCount('PENDING_SHIPMENT') }}</div>
+      </article>
+      <article class="kpi-item">
+        <div class="kpi-label">待收货</div>
+        <div class="kpi-value">{{ statusCount('PENDING_RECEIPT') }}</div>
+      </article>
+    </div>
+
+    <el-table empty-text="暂无数据" :data="orders">
+      <el-table-column prop="id" label="订单编号" width="90" />
+      <el-table-column prop="productId" label="商品编号" width="90" />
+      <el-table-column label="订单状态" width="170">
+        <template #default="scope">
+          <el-tag>{{ orderStatusText(scope.row.status) }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="退款状态" width="140">
+        <template #default="scope">
+          {{ refundStatusText(refundMap[scope.row.id]?.status) }}
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" min-width="900">
+        <template #default="scope">
+          <div class="action-group">
             <el-button size="small" @click="cancel(scope.row)" v-if="scope.row.status === 'PENDING_PAYMENT'">取消</el-button>
             <el-button size="small" type="success" @click="pay(scope.row, 'alipay')" v-if="scope.row.status === 'PENDING_PAYMENT'">支付宝支付</el-button>
             <el-button size="small" type="success" @click="pay(scope.row, 'wechat')" v-if="scope.row.status === 'PENDING_PAYMENT'">微信支付</el-button>
@@ -91,80 +71,28 @@
             <el-button size="small" type="danger" @click="rejectRefund(scope.row)" v-if="orderView === 'seller' && refundMap[scope.row.id]?.status === 'PENDING'">拒绝退款</el-button>
             <el-button size="small" type="primary" @click="shipBackRefund(scope.row)" v-if="orderView !== 'seller' && refundMap[scope.row.id]?.status === 'RETURN_REQUIRED'">填写退货物流</el-button>
             <el-button size="small" type="success" @click="confirmReturnRefund(scope.row)" v-if="orderView === 'seller' && refundMap[scope.row.id]?.status === 'BUYER_SHIPPED'">确认收到退货</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
+          </div>
+        </template>
+      </el-table-column>
+    </el-table>
     <input ref="evalFileInput" type="file" multiple accept="image/*" style="display:none;" @change="onEvalFilesChange" />
-  </div>
+  </el-card>
 </template>
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { disputeApi, evaluationApi, fileApi, logisticsApi, orderApi, paymentApi, refundApi, userApi } from '../../api/modules'
+import { disputeApi, evaluationApi, fileApi, logisticsApi, orderApi, paymentApi, refundApi } from '../../api/modules'
 import { logisticsStatusText, orderStatusText, refundStatusText } from '../../utils/display'
 
 const router = useRouter()
-const addresses = ref([])
-const selectedAddressId = ref(null)
-const addressForm = reactive({
-  receiverName: '张三',
-  receiverPhone: '13800000000',
-  province: '上海市',
-  city: '上海市',
-  district: '浦东新区',
-  detailAddress: '测试路100号',
-  isDefault: true
-})
-
-const cartProducts = ref([])
 const orders = ref([])
 const orderView = ref('buyer')
 const refundMap = reactive({})
 const disputeMap = reactive({})
 const evalFileInput = ref(null)
 const evalOrderRow = ref(null)
-
-const loadAddresses = async () => {
-  addresses.value = await userApi.addresses()
-  if (!selectedAddressId.value && addresses.value.length) {
-    selectedAddressId.value = addresses.value[0].id
-  }
-}
-
-const createAddress = async () => {
-  await userApi.addAddress(addressForm)
-  ElMessage.success('地址已新增')
-  await loadAddresses()
-}
-
-const loadCart = async () => {
-  cartProducts.value = await orderApi.cartList()
-}
-
-const removeCart = async (productId) => {
-  await orderApi.removeCart(productId)
-  ElMessage.success('已移除')
-  await loadCart()
-}
-
-const createOrder = async (productId) => {
-  if (!selectedAddressId.value) {
-    ElMessage.error('请先选择地址')
-    return
-  }
-  await orderApi.createOrder({
-    productId,
-    addressId: selectedAddressId.value,
-    tradeMethod: '快递邮寄',
-    buyerNote: '请尽快发货'
-  })
-  ElMessage.success('订单已创建')
-  await loadCart()
-  await loadOrders()
-}
 
 const loadRefunds = async () => {
   const pairs = await Promise.all(orders.value.map(async (o) => {
@@ -198,6 +126,8 @@ const canCreateDispute = (row) => !['PENDING_PAYMENT', 'CANCELLED', 'CLOSED'].in
 const goCreateDispute = (row) => {
   router.push({ path: '/disputes', query: { orderId: String(row.id) } })
 }
+
+const statusCount = (status) => orders.value.filter((o) => o.status === status).length
 
 const pay = async (row, channel) => {
   const payInfo = channel === 'alipay' ? await paymentApi.alipay(row.id) : await paymentApi.wechat(row.id)
@@ -297,11 +227,15 @@ const confirmReturnRefund = async (row) => {
   await loadOrders()
 }
 
-onMounted(async () => {
-  try {
-    await loadAddresses()
-    await loadCart()
-    await loadOrders()
-  } catch {}
+onMounted(() => {
+  loadOrders().catch(() => {})
 })
 </script>
+
+<style scoped>
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+</style>

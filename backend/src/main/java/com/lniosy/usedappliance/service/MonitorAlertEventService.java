@@ -97,6 +97,7 @@ public class MonitorAlertEventService {
                 e.getStatus(),
                 e.getAckBy(),
                 toEpoch(e.getAckAt()),
+                toEpoch(e.getCreatedAt()),
                 toEpoch(e.getUpdatedAt())
         );
     }

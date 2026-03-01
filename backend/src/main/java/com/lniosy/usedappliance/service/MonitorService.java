@@ -202,56 +202,73 @@ public class MonitorService {
                                                  boolean dbUp,
                                                  boolean redisUp) {
         List<MonitorAlertDto> alerts = new ArrayList<>();
+        long now = Instant.now().toEpochMilli();
+        long expireAt = now + (alertCooldownSeconds * 1000);
         if (cpuLoad >= cpuThreshold) {
-            alerts.add(new MonitorAlertDto(
+            alerts.add(newAlert(
                     "cpu_high", "WARN", "CPU使用率过高",
                     "系统CPU使用率达到 " + round4(cpuLoad) + "，阈值 " + round4(cpuThreshold),
-                    cpuLoad, cpuThreshold
+                    cpuLoad, cpuThreshold, now, expireAt
             ));
         }
         if (processCpuLoad >= processCpuThreshold) {
-            alerts.add(new MonitorAlertDto(
+            alerts.add(newAlert(
                     "process_cpu_high", "WARN", "进程CPU使用率过高",
                     "应用进程CPU使用率达到 " + round4(processCpuLoad) + "，阈值 " + round4(processCpuThreshold),
-                    processCpuLoad, processCpuThreshold
+                    processCpuLoad, processCpuThreshold, now, expireAt
             ));
         }
         if (jvmMemoryUsage >= jvmMemoryUsageThreshold) {
-            alerts.add(new MonitorAlertDto(
+            alerts.add(newAlert(
                     "jvm_memory_high", "WARN", "JVM内存占用过高",
                     "JVM内存使用率达到 " + round4(jvmMemoryUsage) + "，阈值 " + round4(jvmMemoryUsageThreshold),
-                    jvmMemoryUsage, jvmMemoryUsageThreshold
+                    jvmMemoryUsage, jvmMemoryUsageThreshold, now, expireAt
             ));
         }
         if (avgResponseMs >= avgResponseThresholdMs) {
-            alerts.add(new MonitorAlertDto(
+            alerts.add(newAlert(
                     "avg_response_high", "WARN", "接口平均响应时间偏高",
                     "当前平均响应时间 " + round4(avgResponseMs) + "ms，阈值 " + round4(avgResponseThresholdMs) + "ms",
-                    avgResponseMs, avgResponseThresholdMs
+                    avgResponseMs, avgResponseThresholdMs, now, expireAt
             ));
         }
         if (redisHitRate >= 0 && redisHitRate < redisHitRateThreshold) {
-            alerts.add(new MonitorAlertDto(
+            alerts.add(newAlert(
                     "redis_hit_rate_low", "WARN", "Redis命中率偏低",
                     "当前命中率 " + round4(redisHitRate) + "，阈值 " + round4(redisHitRateThreshold),
-                    redisHitRate, redisHitRateThreshold
+                    redisHitRate, redisHitRateThreshold, now, expireAt
             ));
         }
         if (!dbUp) {
-            alerts.add(new MonitorAlertDto(
+            alerts.add(newAlert(
                     "mysql_down", "ERROR", "MySQL连接异常",
                     "MySQL健康检查失败，请检查数据库连接状态",
-                    0, 0
+                    0, 0, now, expireAt
             ));
         }
         if (!redisUp) {
-            alerts.add(new MonitorAlertDto(
+            alerts.add(newAlert(
                     "redis_down", "ERROR", "Redis连接异常",
                     "Redis健康检查失败，请检查缓存服务状态",
-                    0, 0
+                    0, 0, now, expireAt
             ));
         }
         return alerts;
+    }
+
+    private MonitorAlertDto newAlert(String key, String level, String title, String message,
+                                     double currentValue, double threshold,
+                                     long detectedAt, long expireAt) {
+        return new MonitorAlertDto(
+                key,
+                level,
+                title,
+                message,
+                currentValue,
+                threshold,
+                detectedAt,
+                expireAt
+        );
     }
 
     private String round4(double n) {

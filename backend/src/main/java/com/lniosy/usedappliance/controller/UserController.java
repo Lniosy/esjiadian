@@ -24,6 +24,11 @@ public class UserController {
         return ApiResponse.ok(userService.getProfile(SecurityUtils.currentUserId()));
     }
 
+    @GetMapping("/users/{id}/public")
+    public ApiResponse<UserPublicProfileDto> publicProfile(@PathVariable Long id) {
+        return ApiResponse.ok(userService.getPublicProfile(id));
+    }
+
     @PutMapping("/users/me")
     public ApiResponse<UserProfileDto> update(@RequestBody @Valid UpdateProfileRequest req) {
         return ApiResponse.ok(userService.updateProfile(SecurityUtils.currentUserId(), req));

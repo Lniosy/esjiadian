@@ -76,6 +76,13 @@ public class ShopService {
         return shop == null ? null : toDto(shop);
     }
 
+    public ShopDto byUserId(Long userId) {
+        Shop shop = shopMapper.selectOne(new LambdaQueryWrapper<Shop>()
+                .eq(Shop::getUserId, userId)
+                .last("limit 1"));
+        return shop == null ? null : toDto(shop);
+    }
+
     public ShopOverviewDto overview(Long shopId) {
         Shop shop = shopMapper.selectById(shopId);
         if (shop == null) {

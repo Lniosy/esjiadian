@@ -36,6 +36,20 @@ public class UserService {
                 user.getRoles(), user.getAuthStatus(), user.getEnabled());
     }
 
+    public UserPublicProfileDto getPublicProfile(Long userId) {
+        SysUser user = sysUserMapper.selectById(userId);
+        if (user == null || Boolean.FALSE.equals(user.getEnabled())) {
+            throw new BizException(404, "用户不存在");
+        }
+        return new UserPublicProfileDto(
+                user.getId(),
+                user.getNickname(),
+                user.getAvatarUrl(),
+                user.getBio(),
+                user.getAuthStatus()
+        );
+    }
+
     public UserProfileDto updateProfile(Long userId, UpdateProfileRequest req) {
         sysUserMapper.update(null, new LambdaUpdateWrapper<SysUser>()
                 .eq(SysUser::getId, userId)

@@ -6,6 +6,8 @@ public record MonitorAlertDto(
         String title,
         String message,
         double currentValue,
-        double threshold
+        double threshold,
+        long detectedAt,
+        long expireAt
 ) {
 }

@@ -33,6 +33,11 @@ public class ShopController {
         return ApiResponse.ok(shopService.detail(id));
     }
 
+    @GetMapping("/by-user/{userId}")
+    public ApiResponse<ShopDto> byUserId(@PathVariable Long userId) {
+        return ApiResponse.ok(shopService.byUserId(userId));
+    }
+
     @GetMapping("/{id}/overview")
     public ApiResponse<ShopOverviewDto> overview(@PathVariable Long id) {
         return ApiResponse.ok(shopService.overview(id));

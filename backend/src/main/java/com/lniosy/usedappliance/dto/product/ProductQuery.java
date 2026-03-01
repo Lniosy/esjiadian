@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 
 public record ProductQuery(
         String keyword,
+        Long sellerId,
         Long categoryId,
         String conditionLevel,
         String functionStatus,

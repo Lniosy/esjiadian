@@ -40,7 +40,7 @@
       </el-descriptions>
       <div style="margin-top:12px;">
         <div style="font-weight:600;margin-bottom:8px;">监控告警（实时判断）</div>
-        <el-table :data="monitorAlerts" size="small">
+        <el-table empty-text="暂无数据" :data="monitorAlerts" size="small">
           <el-table-column prop="level" label="级别" width="80" />
           <el-table-column prop="title" label="告警标题" width="180" />
           <el-table-column prop="message" label="详情" />
@@ -55,7 +55,7 @@
           <el-button @click="loadAlertEvents">刷新</el-button>
         </div>
       </template>
-      <el-table :data="alertEvents">
+      <el-table empty-text="暂无数据" :data="alertEvents">
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="level" label="级别" width="90" />
         <el-table-column prop="title" label="标题" width="180" />
@@ -79,7 +79,7 @@
       <div v-if="!slowQueryState.available" style="margin-bottom:8px;color:#e6a23c;">
         {{ slowQueryState.message || 'performance_schema 不可用或无权限' }}
       </div>
-      <el-table :data="slowQueries">
+      <el-table empty-text="暂无数据" :data="slowQueries">
         <el-table-column prop="count" label="执行次数" width="100" />
         <el-table-column prop="avgMs" label="平均耗时(ms)" width="130" />
         <el-table-column prop="totalMs" label="总耗时(ms)" width="130" />
@@ -95,7 +95,7 @@
           <el-button @click="loadSmsLogs">刷新</el-button>
         </div>
       </template>
-      <el-table :data="smsLogs">
+      <el-table empty-text="暂无数据" :data="smsLogs">
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="type" label="类型" width="110" />
         <el-table-column prop="userId" label="用户ID" width="90" />
@@ -114,7 +114,7 @@
           <el-button @click="loadOperationLogs">刷新</el-button>
         </div>
       </template>
-      <el-table :data="operationLogs">
+      <el-table empty-text="暂无数据" :data="operationLogs">
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="operatorId" label="操作人ID" width="90" />
         <el-table-column prop="operatorRole" label="角色" width="90" />
@@ -140,7 +140,7 @@
           </div>
         </div>
       </template>
-      <el-table :data="chatReports">
+      <el-table empty-text="暂无数据" :data="chatReports">
         <el-table-column prop="id" label="举报ID" width="90" />
         <el-table-column prop="messageId" label="消息ID" width="90" />
         <el-table-column prop="reporterName" label="举报人" width="120" />
@@ -174,7 +174,7 @@
           </div>
         </div>
       </template>
-      <el-table :data="trendList">
+      <el-table empty-text="暂无数据" :data="trendList">
         <el-table-column prop="date" label="日期" width="130" />
         <el-table-column prop="userCount" label="新增用户" width="100" />
         <el-table-column prop="productCount" label="新增商品" width="100" />
@@ -205,7 +205,7 @@
 
     <el-card>
       <template #header><h3 style="margin:0;">纠纷处理</h3></template>
-      <el-table :data="disputes">
+      <el-table empty-text="暂无数据" :data="disputes">
         <el-table-column prop="id" label="纠纷ID" width="90" />
         <el-table-column prop="orderId" label="订单ID" width="90" />
         <el-table-column prop="reason" label="原因" />
@@ -225,7 +225,7 @@
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
         <el-input v-model="userFilter.keyword" placeholder="昵称/邮箱/手机号" style="width:220px;" />
         <el-select v-model="userFilter.enabled" placeholder="启用状态" style="width:120px;">
-          <el-option label="全部" :value="null" />
+          <el-option label="全部" value="" />
           <el-option label="启用" :value="true" />
           <el-option label="禁用" :value="false" />
         </el-select>
@@ -237,7 +237,7 @@
         </el-select>
         <el-button type="primary" @click="loadUsers">筛选</el-button>
       </div>
-      <el-table :data="users">
+      <el-table empty-text="暂无数据" :data="users">
         <el-table-column prop="userId" label="用户ID" width="90" />
         <el-table-column prop="nickname" label="昵称" width="140" />
         <el-table-column prop="roles" label="角色" width="180" />
@@ -263,7 +263,7 @@
           <el-button type="primary" @click="exportOrders">导出CSV</el-button>
         </div>
       </template>
-      <el-table :data="orders">
+      <el-table empty-text="暂无数据" :data="orders">
         <el-table-column prop="id" label="订单ID" width="90" />
         <el-table-column prop="orderNo" label="订单号" width="210" />
         <el-table-column prop="buyerId" label="买家ID" width="90" />
@@ -297,7 +297,7 @@ const operationLogs = ref([])
 const slowQueryState = reactive({ available: true, message: '' })
 const userFilter = reactive({
   keyword: '',
-  enabled: null,
+  enabled: '',
   role: ''
 })
 const reportFilter = reactive({
@@ -376,7 +376,7 @@ const ackAlert = async (row) => {
 const loadUsers = async () => {
   users.value = await adminApi.users({
     keyword: userFilter.keyword || null,
-    enabled: userFilter.enabled,
+    enabled: userFilter.enabled === '' ? null : userFilter.enabled,
     role: userFilter.role || null
   })
 }

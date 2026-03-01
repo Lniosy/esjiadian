@@ -2,10 +2,12 @@ package com.lniosy.usedappliance.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.lniosy.usedappliance.common.BizException;
 import com.lniosy.usedappliance.dto.dispute.DisputeCreateRequest;
 import com.lniosy.usedappliance.dto.dispute.DisputeDto;
 import com.lniosy.usedappliance.dto.dispute.DisputeResolveRequest;
 import com.lniosy.usedappliance.entity.DisputeCase;
+import com.lniosy.usedappliance.entity.OrderInfo;
 import com.lniosy.usedappliance.mapper.DisputeCaseMapper;
 import org.springframework.stereotype.Service;
 
@@ -15,13 +17,33 @@ import java.util.List;
 public class DisputeService {
     private final DisputeCaseMapper disputeCaseMapper;
     private final NotificationService notificationService;
+    private final OrderService orderService;
 
-    public DisputeService(DisputeCaseMapper disputeCaseMapper, NotificationService notificationService) {
+    public DisputeService(DisputeCaseMapper disputeCaseMapper, NotificationService notificationService, OrderService orderService) {
         this.disputeCaseMapper = disputeCaseMapper;
         this.notificationService = notificationService;
+        this.orderService = orderService;
     }
 
     public DisputeDto create(Long applicantId, DisputeCreateRequest req) {
+        OrderInfo order = orderService.getOrderEntity(req.orderId());
+        if (order == null) {
+            throw new BizException(404, "订单不存在");
+        }
+        boolean participant = applicantId.equals(order.getBuyerId()) || applicantId.equals(order.getSellerId());
+        if (!participant) {
+            throw new BizException(403, "只能对本人参与的订单发起纠纷");
+        }
+        if ("PENDING_PAYMENT".equals(order.getStatus()) || "CANCELLED".equals(order.getStatus())) {
+            throw new BizException(400, "当前订单状态不支持发起纠纷");
+        }
+        Long exists = disputeCaseMapper.selectCount(new LambdaQueryWrapper<DisputeCase>()
+                .eq(DisputeCase::getOrderId, req.orderId())
+                .eq(DisputeCase::getApplicantId, applicantId)
+                .in(DisputeCase::getStatus, List.of("OPEN", "PENDING", "PROCESSING")));
+        if (exists != null && exists > 0) {
+            throw new BizException(400, "该订单已有处理中纠纷");
+        }
         DisputeCase d = new DisputeCase();
         d.setOrderId(req.orderId());
         d.setApplicantId(applicantId);

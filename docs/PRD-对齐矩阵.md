@@ -8,7 +8,7 @@
 ## 功能对齐矩阵
 | PRD功能 | 实现状态 | API | 前端页面/路由 | 测试用例 | 证据 |
 |---|---|---|---|---|---|
-| 用户注册/登录（密码+验证码、锁定） | 已实现（验证码为模拟） | `/api/auth/code/send` `/api/auth/register` `/api/auth/login/password` `/api/auth/login/code` `/api/auth/logout` | `/login` | 登录成功/失败5次锁定30分钟；验证码5分钟有效 | `AuthService` + `AuthCodeService` |
+| 用户注册/登录（密码+验证码、锁定） | 已实现（验证码 Redis+TTL） | `/api/auth/code/send` `/api/auth/register` `/api/auth/login/password` `/api/auth/login/code` `/api/auth/logout` | `/login` | 登录成功/失败5次锁定30分钟；验证码5分钟有效 | `AuthService` + `AuthCodeService` |
 | 实名认证与用户中心 | 已实现 | `/api/verification/real-name` `/api/verification/status` `/api/users/me` `/api/users/me/addresses` `/api/admin/verification/{id}/approve|reject` | 登录后主流程可调用（无独立用户中心页） | 认证申请-审核-状态流转；地址增删改查 | `UserController`/`UserService` |
 | 商品发布/编辑/上下架/审核 | 已实现（含上架数量约束） | `/api/products` `/api/products/{id}` `/api/products/{id}/on-shelf|off-shelf` `/api/admin/products/reviews` `/api/admin/products/reviews/{id}/approve|reject` | `/products` | 发布待审、审核通过上架、编辑后二次审核、最多50件上架 | `ProductService` |
 | 商品搜索与详情 | 部分实现 | `/api/products` `/api/products/{id}` | `/products` | 关键词+筛选查询、排序、详情查看 | 已支持价格区间/交易方式/销量排序；分类导航独立模块未做 |
@@ -33,6 +33,7 @@
 6. 评价支持图片上传（最多6张）并落库存储 URL。
 7. 卖家信誉分支持动态复算（管理员接口 + 定时任务）。
 8. 通知中心补齐浏览器通知提醒与短信模拟日志。
+9. 验证码缓存切换为 Redis（TTL=300秒），Redis异常时保底降级内存，保证登录/注册链路可用。
 
 ## 回归验证结果
 1. 后端：`mvn -q test` 通过。

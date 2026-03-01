@@ -110,6 +110,7 @@ public class ProductService {
                     .or().like(Product::getModel, q.keyword()));
         }
         if (q.categoryId() != null) qw.eq(Product::getCategoryId, q.categoryId());
+        if (q.sellerId() != null) qw.eq(Product::getSellerId, q.sellerId());
         if (q.conditionLevel() != null) qw.eq(Product::getConditionLevel, q.conditionLevel());
         if (q.functionStatus() != null) qw.eq(Product::getFunctionStatus, q.functionStatus());
         if (q.region() != null) qw.eq(Product::getRegion, q.region());
@@ -213,11 +214,15 @@ public class ProductService {
     }
 
     private ProductDto toDto(Product p) {
+        SysUser seller = sysUserMapper.selectById(p.getSellerId());
         List<String> images = productImageMapper.selectList(new LambdaQueryWrapper<ProductImage>()
                         .eq(ProductImage::getProductId, p.getId())
                         .orderByAsc(ProductImage::getSort))
                 .stream().map(ProductImage::getImageUrl).toList();
-        return new ProductDto(p.getId(), p.getSellerId(), p.getTitle(), p.getCategoryId(), p.getBrand(), p.getModel(),
+        return new ProductDto(p.getId(), p.getSellerId(),
+                seller == null ? "未知用户" : seller.getNickname(),
+                seller == null ? "" : seller.getAvatarUrl(),
+                p.getTitle(), p.getCategoryId(), p.getBrand(), p.getModel(),
                 p.getPurchaseDate(), p.getConditionLevel(), p.getFunctionStatus(), p.getRepairHistory(),
                 p.getDescription(), p.getVideoUrl(), p.getPrice(), p.getOriginalPrice(),
                 p.getRegion(), p.getTradeMethods(), p.getStatus(), p.getRejectReason(), p.getSold(), p.getSalesCount(), images);
