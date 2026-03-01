@@ -1,0 +1,33 @@
+.DS_Store
+**/.DS_Store
+
+# backend
+backend/target/
+backend/.idea/
+backend/*.log
+
+# frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.cache/
+
+# env
+.env
+.env.*
+.venv*/
+.python-version
+
+# editor
+.idea/
+.vscode/
+*.iml
+
+# logs/temp
+*.log
+*.tmp
+*.swp
+
+# reports/screenshots
+reports/
+screenshots/

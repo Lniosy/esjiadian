@@ -1,0 +1,2 @@
+ALTER TABLE evaluation
+  ADD COLUMN images VARCHAR(2000) NULL AFTER content;

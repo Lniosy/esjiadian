@@ -1,0 +1,58 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: used-appliance-backend
+  datasource:
+    url: jdbc:mysql://localhost:3306/used_appliance?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+
+app:
+  jwt:
+    secret: change-this-to-very-long-secret-key-change-this-to-very-long-secret-key
+    expiration-days: 7
+  payment:
+    alipay:
+      mock-base-url: https://pay.example.com/alipay
+    wechat:
+      mock-base-url: https://pay.example.com/wechat
+  logistics:
+    provider: kd100
+    sync-cron: 0 */5 * * * *
+  order:
+    auto-cancel-cron: 0 */5 * * * *
+    auto-receipt-cron: 0 */10 * * * *
+  monitor:
+    slow-request-threshold-ms: 800
+    alert:
+      cron: 0 */5 * * * *
+      cooldown-seconds: 600
+      cpu-threshold: 0.85
+      process-cpu-threshold: 0.85
+      jvm-memory-usage-threshold: 0.90
+      avg-response-ms-threshold: 500
+      redis-hit-rate-threshold: 0.70
+  file:
+    upload-dir: uploads
+  evaluation:
+    recompute-cron: 0 0 3 * * *
+
+logging:
+  level:
+    root: INFO
+    com.lniosy.usedappliance: INFO

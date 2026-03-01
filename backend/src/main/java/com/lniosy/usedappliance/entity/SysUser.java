@@ -1,0 +1,53 @@
+package com.lniosy.usedappliance.entity;
+
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+@TableName("sys_user")
+public class SysUser {
+    @TableId(type = IdType.AUTO)
+    private Long id;
+    private String email;
+    private String phone;
+    private String passwordHash;
+    private String nickname;
+    private String avatarUrl;
+    private String bio;
+    private String roles;
+    private String authStatus;
+    private BigDecimal sellerScore;
+    private Integer loginFailCount;
+    private LocalDateTime lockUntil;
+    private Boolean enabled;
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+    public String getPasswordHash() { return passwordHash; }
+    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+    public String getNickname() { return nickname; }
+    public void setNickname(String nickname) { this.nickname = nickname; }
+    public String getAvatarUrl() { return avatarUrl; }
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
+    public String getBio() { return bio; }
+    public void setBio(String bio) { this.bio = bio; }
+    public String getRoles() { return roles; }
+    public void setRoles(String roles) { this.roles = roles; }
+    public String getAuthStatus() { return authStatus; }
+    public void setAuthStatus(String authStatus) { this.authStatus = authStatus; }
+    public BigDecimal getSellerScore() { return sellerScore; }
+    public void setSellerScore(BigDecimal sellerScore) { this.sellerScore = sellerScore; }
+    public Integer getLoginFailCount() { return loginFailCount; }
+    public void setLoginFailCount(Integer loginFailCount) { this.loginFailCount = loginFailCount; }
+    public LocalDateTime getLockUntil() { return lockUntil; }
+    public void setLockUntil(LocalDateTime lockUntil) { this.lockUntil = lockUntil; }
+    public Boolean getEnabled() { return enabled; }
+    public void setEnabled(Boolean enabled) { this.enabled = enabled; }
+}

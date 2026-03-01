@@ -1,0 +1,15 @@
+CREATE TABLE IF NOT EXISTS sms_notification_log (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  phone VARCHAR(32) NOT NULL,
+  type VARCHAR(32) NOT NULL,
+  title VARCHAR(120) NOT NULL,
+  content VARCHAR(500) NOT NULL,
+  provider VARCHAR(32) NOT NULL DEFAULT 'MOCK_SMS',
+  status VARCHAR(32) NOT NULL DEFAULT 'SENT',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at DATETIME NULL,
+  INDEX idx_sms_user_time (user_id, created_at),
+  INDEX idx_sms_type_time (type, created_at)
+);
