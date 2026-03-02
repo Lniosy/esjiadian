@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 public record ProductDto(Long id, Long sellerId, String sellerNickname, String sellerAvatarUrl,
+                         String sellerShopName,
                          String title, Long categoryId, String brand, String model,
                          LocalDate purchaseDate, String conditionLevel, String functionStatus, String repairHistory,
                          String description, String videoUrl, BigDecimal price,

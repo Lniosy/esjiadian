@@ -84,9 +84,9 @@
             </div>
             <button class="card-seller" @click.stop="goSeller(item.sellerId)">
               <el-avatar :size="18" style="font-size:10px;background:var(--c-primary);flex-shrink:0;">
-                {{ avatarText(item.sellerNickname) }}
+                {{ avatarText(item.sellerShopName || item.sellerNickname) }}
               </el-avatar>
-              <span>{{ item.sellerNickname || `用户${item.sellerId}` }}</span>
+              <span>{{ item.sellerShopName || item.sellerNickname || `用户${item.sellerId}` }}</span>
             </button>
           </div>
         </article>
@@ -127,10 +127,10 @@
 
       <div class="detail-seller">
         <el-avatar :size="36" style="background:var(--c-primary);font-size:14px;">
-          {{ avatarText(detailDrawer.item.sellerNickname) }}
+          {{ avatarText(detailDrawer.item.sellerShopName || detailDrawer.item.sellerNickname) }}
         </el-avatar>
         <div>
-          <div class="detail-seller-name">{{ detailDrawer.item.sellerNickname || `用户${detailDrawer.item.sellerId}` }}</div>
+          <div class="detail-seller-name">{{ detailDrawer.item.sellerShopName || detailDrawer.item.sellerNickname || `用户${detailDrawer.item.sellerId}` }}</div>
           <el-button text type="primary" size="small" @click="goSeller(detailDrawer.item.sellerId); detailDrawer.visible = false">
             进入店铺 →
           </el-button>
@@ -442,7 +442,7 @@ onMounted(() => {
   cursor: pointer;
   padding: 4px 0 0;
   font-size: 11px;
-  color: var(--c-text-tertiary);
+  color: var(--c-text-secondary);
   width: 100%;
   overflow: hidden;
 }

@@ -11,7 +11,7 @@
               <el-button type="primary" size="large" round>逛逛市场</el-button>
             </router-link>
             <router-link to="/shop">
-              <el-button size="large" round plain style="color:#fff;border-color:rgba(255,255,255,0.6);">发布闲置</el-button>
+              <el-button size="large" round class="banner-btn-outline">发布闲置</el-button>
             </router-link>
           </div>
         </div>
@@ -66,9 +66,9 @@
               <span class="card-price">¥{{ item.price }}</span>
               <button class="card-seller" @click.stop="goSeller(item.sellerId)">
                 <el-avatar :size="20" style="font-size:10px;background:var(--c-primary);">
-                  {{ (item.sellerNickname || '').slice(0,2) || '卖' }}
+                  {{ (item.sellerShopName || item.sellerNickname || '').slice(0,2) || '卖' }}
                 </el-avatar>
-                <span>{{ item.sellerNickname || `用户${item.sellerId}` }}</span>
+                <span>{{ item.sellerShopName || item.sellerNickname || `用户${item.sellerId}` }}</span>
               </button>
             </div>
           </div>
@@ -103,10 +103,10 @@
         </div>
         <div class="detail-seller-row">
           <el-avatar :size="36" style="background:var(--c-primary);font-size:14px;">
-            {{ (detailItem.sellerNickname || '').slice(0,2) || '卖' }}
+            {{ (detailItem.sellerShopName || detailItem.sellerNickname || '').slice(0,2) || '卖' }}
           </el-avatar>
           <div>
-            <div class="detail-seller-name">{{ detailItem.sellerNickname || `卖家${detailItem.sellerId}` }}</div>
+            <div class="detail-seller-name">{{ detailItem.sellerShopName || detailItem.sellerNickname || `卖家${detailItem.sellerId}` }}</div>
             <el-button text type="primary" size="small" @click="goSeller(detailItem.sellerId); detailVisible = false">
               进入店铺 →
             </el-button>
@@ -233,6 +233,20 @@ onMounted(async () => {
 .banner-actions .el-button--primary:hover {
   box-shadow: 0 6px 18px rgba(0,0,0,0.16) !important;
   background: #fff !important;
+}
+
+/* 发布闲置按钮：白色边框 + 半透明底，确保在橙色背景上可见 */
+.banner-btn-outline {
+  color: #fff !important;
+  border-color: rgba(255,255,255,0.7) !important;
+  background: rgba(255,255,255,0.15) !important;
+  font-weight: 600;
+  backdrop-filter: blur(4px);
+}
+.banner-btn-outline:hover {
+  background: rgba(255,255,255,0.28) !important;
+  border-color: #fff !important;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.12);
 }
 
 .banner-illustration {
@@ -434,7 +448,7 @@ onMounted(async () => {
   cursor: pointer;
   padding: 0;
   font-size: 11px;
-  color: var(--c-text-tertiary);
+  color: var(--c-text-secondary);
   max-width: 80px;
   overflow: hidden;
 }

@@ -10,9 +10,11 @@ import com.lniosy.usedappliance.dto.product.ProductDto;
 import com.lniosy.usedappliance.dto.product.ProductQuery;
 import com.lniosy.usedappliance.entity.Product;
 import com.lniosy.usedappliance.entity.ProductImage;
+import com.lniosy.usedappliance.entity.Shop;
 import com.lniosy.usedappliance.entity.SysUser;
 import com.lniosy.usedappliance.mapper.ProductImageMapper;
 import com.lniosy.usedappliance.mapper.ProductMapper;
+import com.lniosy.usedappliance.mapper.ShopMapper;
 import com.lniosy.usedappliance.mapper.SysUserMapper;
 import org.springframework.stereotype.Service;
 
@@ -23,11 +25,14 @@ public class ProductService {
     private final ProductMapper productMapper;
     private final ProductImageMapper productImageMapper;
     private final SysUserMapper sysUserMapper;
+    private final ShopMapper shopMapper;
 
-    public ProductService(ProductMapper productMapper, ProductImageMapper productImageMapper, SysUserMapper sysUserMapper) {
+    public ProductService(ProductMapper productMapper, ProductImageMapper productImageMapper,
+                          SysUserMapper sysUserMapper, ShopMapper shopMapper) {
         this.productMapper = productMapper;
         this.productImageMapper = productImageMapper;
         this.sysUserMapper = sysUserMapper;
+        this.shopMapper = shopMapper;
     }
 
     public ProductDto create(Long sellerId, ProductCreateRequest req) {
@@ -215,6 +220,12 @@ public class ProductService {
 
     private ProductDto toDto(Product p) {
         SysUser seller = sysUserMapper.selectById(p.getSellerId());
+        // 查询卖家店铺名称，优先使用店铺名展示
+        Shop shop = shopMapper.selectOne(new LambdaQueryWrapper<Shop>()
+                .eq(Shop::getUserId, p.getSellerId())
+                .last("LIMIT 1"));
+        String shopName = (shop != null && shop.getName() != null && !shop.getName().isBlank())
+                ? shop.getName() : null;
         List<String> images = productImageMapper.selectList(new LambdaQueryWrapper<ProductImage>()
                         .eq(ProductImage::getProductId, p.getId())
                         .orderByAsc(ProductImage::getSort))
@@ -222,6 +233,7 @@ public class ProductService {
         return new ProductDto(p.getId(), p.getSellerId(),
                 seller == null ? "未知用户" : seller.getNickname(),
                 seller == null ? "" : seller.getAvatarUrl(),
+                shopName,
                 p.getTitle(), p.getCategoryId(), p.getBrand(), p.getModel(),
                 p.getPurchaseDate(), p.getConditionLevel(), p.getFunctionStatus(), p.getRepairHistory(),
                 p.getDescription(), p.getVideoUrl(), p.getPrice(), p.getOriginalPrice(),

@@ -16,8 +16,8 @@
               <el-descriptions-item label="订单状态">
                 <el-tag>{{ orderStatusText(detailOrder?.status || order.status) }}</el-tag>
               </el-descriptions-item>
-              <el-descriptions-item label="买家ID">{{ detailOrder?.buyerId || order.buyerId || '-' }}</el-descriptions-item>
-              <el-descriptions-item label="卖家ID">{{ detailOrder?.sellerId || order.sellerId || '-' }}</el-descriptions-item>
+              <el-descriptions-item label="买家">{{ buyerName || `用户${detailOrder?.buyerId || order.buyerId || '-'}` }}</el-descriptions-item>
+              <el-descriptions-item label="卖家">{{ sellerName || `用户${detailOrder?.sellerId || order.sellerId || '-'}` }}</el-descriptions-item>
             </el-descriptions>
           </el-card>
         </el-tab-pane>
@@ -98,7 +98,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { disputeApi, logisticsApi, orderApi, refundApi } from '../../../api/modules'
+import { disputeApi, logisticsApi, orderApi, refundApi, userApi, shopApi } from '../../../api/modules'
 import { disputeStatusText, logisticsStatusText, orderStatusText, refundStatusText } from '../../../utils/display'
 
 const props = defineProps({
@@ -123,6 +123,8 @@ const detailOrder = ref(null)
 const logisticsDetail = ref(null)
 const refundDetail = ref(null)
 const disputes = ref([])
+const buyerName = ref('')
+const sellerName = ref('')
 
 const loadingOrder = ref(false)
 const loadingLogistics = ref(false)
@@ -166,6 +168,22 @@ const loadingAny = computed(() => loadingOrder.value || loadingLogistics.value |
 
 const refreshAll = async () => {
   if (!props.order?.id) return
+
+  // 解析买家/卖家名称（优先店铺名）
+  const resolvedOrder = detailOrder.value || props.order
+  if (resolvedOrder?.buyerId) {
+    userApi.publicProfile(resolvedOrder.buyerId)
+      .then(p => { buyerName.value = p?.nickname || '' })
+      .catch(() => {})
+  }
+  if (resolvedOrder?.sellerId) {
+    Promise.all([
+      userApi.publicProfile(resolvedOrder.sellerId).catch(() => null),
+      shopApi.byUser(resolvedOrder.sellerId).catch(() => null)
+    ]).then(([profile, shop]) => {
+      sellerName.value = shop?.name || profile?.nickname || ''
+    })
+  }
 
   loadingOrder.value = true
   orderApi.getOrder(props.order.id)

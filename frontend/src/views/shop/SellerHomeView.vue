@@ -4,12 +4,12 @@
     <!-- 卖家主页 Profile 卡 -->
     <el-card class="profile-card" shadow="never">
       <div class="profile-main">
-        <el-avatar :size="72" :src="profile?.avatarUrl || ''" class="profile-avatar">
+        <el-avatar :size="72" :src="shopLogoUrl" class="profile-avatar">
           {{ avatarText }}
         </el-avatar>
         <div class="profile-info">
           <div class="name-row">
-            <span class="seller-name">{{ profile?.nickname || '卖家' }}</span>
+            <span class="seller-name">{{ displayName }}</span>
             <el-tag
               size="small"
               :type="profile?.authStatus === 'APPROVED' ? 'success' : 'info'"
@@ -18,7 +18,16 @@
               {{ profile?.authStatus === 'APPROVED' ? '✓ 已认证' : '未认证' }}
             </el-tag>
           </div>
-          <p class="seller-bio">{{ profile?.bio || '这个卖家还没有填写简介。' }}</p>
+          <!-- 店铺名和昵称不同时，显示昵称作为副标题 -->
+          <p v-if="shop?.name && shop.name !== profile?.nickname" class="seller-sub-name">
+            店主：{{ profile?.nickname || '卖家' }}
+          </p>
+          <p class="seller-bio">{{ shop?.intro || profile?.bio || '这个卖家还没有填写简介。' }}</p>
+          <div v-if="shop?.categories" class="seller-categories">
+            <el-tag v-for="cat in shopCategories" :key="cat" size="small" round type="warning" effect="plain">
+              {{ cat }}
+            </el-tag>
+          </div>
           <div class="seller-stats">
             <span class="stat-item">
               <span class="stat-val">{{ products.length }}</span>
@@ -29,6 +38,13 @@
               <span class="stat-val">{{ shop?.totalSold ?? 0 }}</span>
               <span class="stat-lab">已售</span>
             </span>
+            <template v-if="shop?.region">
+              <span class="stat-divider">|</span>
+              <span class="stat-item">
+                <span class="stat-val" style="font-size:13px;">📍</span>
+                <span class="stat-lab">{{ shop.region }}</span>
+              </span>
+            </template>
           </div>
         </div>
         <div class="profile-actions">
@@ -71,7 +87,7 @@
     </div>
     <el-empty v-else-if="!loading" description="该卖家暂时没有在售商品" :image-size="80" />
 
-    <el-drawer v-model="chatDrawerVisible" :title="`联系 ${profile?.nickname || '卖家'}`" size="36%">
+    <el-drawer v-model="chatDrawerVisible" :title="`联系 ${displayName}`" size="36%">
       <el-alert type="info" :closable="false" show-icon>
         在当前页面直接发送消息，不需要跳转聊天页。
       </el-alert>
@@ -116,9 +132,24 @@ const chatDrawerVisible = ref(false)
 const sendingChat = ref(false)
 const chatDraft = ref('')
 
+// 优先使用店铺名称，没有则使用昵称
+const displayName = computed(() => {
+  return shop.value?.name || profile.value?.nickname || '卖家'
+})
+
 const avatarText = computed(() => {
-  const n = profile.value?.nickname || '卖家'
-  return n.slice(0, 2)
+  return displayName.value.slice(0, 2)
+})
+
+// 店铺头像：优先使用店铺 Logo，其次使用用户头像
+const shopLogoUrl = computed(() => {
+  return shop.value?.logoUrl || profile.value?.avatarUrl || ''
+})
+
+// 解析经营类目
+const shopCategories = computed(() => {
+  if (!shop.value?.categories) return []
+  return shop.value.categories.split(',').map(s => s.trim()).filter(Boolean)
 })
 
 const loadAll = async () => {
@@ -238,6 +269,19 @@ onMounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.seller-sub-name {
+  font-size: 12px;
+  color: var(--c-text-tertiary, #999);
+  margin: 0 0 4px;
+}
+
+.seller-categories {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
 }
 
 .seller-stats {
