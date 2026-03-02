@@ -13,6 +13,7 @@ public class RefundRequest {
     private Long orderId;
     private Long applicantId;
     private String reason;
+    private String evidenceImages;
     private String status;
     private String rejectReason;
     private String returnCompanyCode;
@@ -30,6 +31,8 @@ public class RefundRequest {
     public void setApplicantId(Long applicantId) { this.applicantId = applicantId; }
     public String getReason() { return reason; }
     public void setReason(String reason) { this.reason = reason; }
+    public String getEvidenceImages() { return evidenceImages; }
+    public void setEvidenceImages(String evidenceImages) { this.evidenceImages = evidenceImages; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public String getRejectReason() { return rejectReason; }

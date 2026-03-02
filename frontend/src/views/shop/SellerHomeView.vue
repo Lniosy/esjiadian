@@ -32,7 +32,7 @@
           </div>
         </div>
         <div class="profile-actions">
-          <el-button type="primary" round size="large" @click="startChat">
+          <el-button type="primary" round size="large" @click="openChatDrawer()">
             💬 聊一聊
           </el-button>
         </div>
@@ -63,29 +63,58 @@
             <span class="card-price">¥{{ item.price }}</span>
             <div class="card-btns">
               <el-button size="small" plain round @click="addToCart(item.id)">🛒</el-button>
-              <el-button size="small" type="primary" round @click="startChat">咨询</el-button>
+              <el-button size="small" type="primary" round @click="openChatDrawer(item)">咨询</el-button>
             </div>
           </div>
         </div>
       </article>
     </div>
     <el-empty v-else-if="!loading" description="该卖家暂时没有在售商品" :image-size="80" />
+
+    <el-drawer v-model="chatDrawerVisible" :title="`联系 ${profile?.nickname || '卖家'}`" size="36%">
+      <el-alert type="info" :closable="false" show-icon>
+        在当前页面直接发送消息，不需要跳转聊天页。
+      </el-alert>
+      <el-form label-width="80px" style="margin-top: 14px;">
+        <el-form-item label="消息内容">
+          <el-input
+            v-model="chatDraft"
+            type="textarea"
+            :rows="5"
+            maxlength="300"
+            show-word-limit
+            placeholder="请输入咨询内容"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="action-group">
+          <el-button @click="chatDrawerVisible = false">取消</el-button>
+          <el-button type="primary" :loading="sendingChat" :disabled="!chatDraft.trim()" @click="sendChat">
+            发送消息
+          </el-button>
+        </div>
+      </template>
+    </el-drawer>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { orderApi, productApi, shopApi, userApi } from '../../api/modules'
+import { chatApi, orderApi, productApi, shopApi, userApi } from '../../api/modules'
 
 const route = useRoute()
-const router = useRouter()
 const sellerId = Number(route.params.id)
+const currentUserId = Number(localStorage.getItem('userId') || 0)
 const loading = ref(false)
 const profile = ref(null)
 const products = ref([])
 const shop = ref(null)
+const chatDrawerVisible = ref(false)
+const sendingChat = ref(false)
+const chatDraft = ref('')
 
 const avatarText = computed(() => {
   const n = profile.value?.nickname || '卖家'
@@ -118,12 +147,37 @@ const addToCart = async (productId) => {
   ElMessage.success('已加入购物车')
 }
 
-const startChat = async () => {
+const openChatDrawer = (product = null) => {
+  if (!sellerId || sellerId === currentUserId) {
+    ElMessage.warning('当前账号无法发起该会话')
+    return
+  }
+  if (product) {
+    chatDraft.value = `你好，我想咨询商品「${product.title}」（#${product.id}）`
+  } else {
+    chatDraft.value = ''
+  }
+  chatDrawerVisible.value = true
+}
+
+const sendChat = async () => {
+  const content = chatDraft.value.trim()
+  if (!content) return
   try {
     await userApi.publicProfile(sellerId)
-    router.push({ path: '/chat', query: { peerId: String(sellerId) } })
+    sendingChat.value = true
+    await chatApi.send({
+      toUserId: sellerId,
+      contentType: 'TEXT',
+      content
+    })
+    ElMessage.success('消息已发送')
+    chatDrawerVisible.value = false
+    chatDraft.value = ''
   } catch {
-    ElMessage.error('目标用户不存在或不可聊天')
+    ElMessage.error('发送失败，请稍后重试')
+  } finally {
+    sendingChat.value = false
   }
 }
 

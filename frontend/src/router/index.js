@@ -6,10 +6,7 @@ const LoginView = () => import('../views/auth/LoginView.vue')
 const HomeView = () => import('../views/home/HomeView.vue')
 const ProductListView = () => import('../views/product/ProductListView.vue')
 const OrderLayoutView = () => import('../views/order/OrderLayoutView.vue')
-const OrderListView = () => import('../views/order/OrderListView.vue')
-const OrderCartView = () => import('../views/order/OrderCartView.vue')
-const OrderAddressView = () => import('../views/order/OrderAddressView.vue')
-const DisputeView = () => import('../views/order/DisputeView.vue')
+const OrderWorkbenchView = () => import('../views/order/OrderWorkbenchView.vue')
 const ShopView = () => import('../views/shop/ShopView.vue')
 const SellerHomeView = () => import('../views/shop/SellerHomeView.vue')
 const ChatView = () => import('../views/chat/ChatView.vue')
@@ -34,17 +31,18 @@ const router = createRouter({
           path: 'orders',
           component: OrderLayoutView,
           children: [
-            { path: '', redirect: '/orders/list' },
-            { path: 'list', component: OrderListView },
-            { path: 'cart', component: OrderCartView },
-            { path: 'address', component: OrderAddressView }
+            { path: '', redirect: '/orders/workbench' },
+            { path: 'list', redirect: '/orders/workbench' },
+            { path: 'workbench', component: OrderWorkbenchView },
+            { path: 'cart', redirect: '/orders/workbench?tab=checkout' },
+            { path: 'address', redirect: '/orders/workbench?tab=checkout' }
           ]
         },
         { path: 'shop', component: ShopView },
         { path: 'users/:id', component: SellerHomeView },
         { path: 'chat', component: ChatView },
         { path: 'notifications', component: NotificationView },
-        { path: 'disputes', component: DisputeView },
+        { path: 'disputes', redirect: '/orders/workbench?tab=afterSales' },
         {
           path: 'admin',
           component: AdminLayoutView,

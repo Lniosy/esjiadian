@@ -2,5 +2,7 @@ package com.lniosy.usedappliance.dto.refund;
 
 import jakarta.validation.constraints.NotBlank;
 
-public record RefundApplyRequest(@NotBlank String reason) {
+import java.util.List;
+
+public record RefundApplyRequest(@NotBlank String reason, List<String> images) {
 }

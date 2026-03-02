@@ -36,9 +36,7 @@ const route = useRoute()
 const is = (path) => route.path === path
 
 const tabs = [
-  { path: '/orders/list',    icon: '📋', label: '我的订单' },
-  { path: '/orders/cart',    icon: '🛒', label: '购物车' },
-  { path: '/orders/address', icon: '📍', label: '收货地址' },
+  { path: '/orders/workbench', icon: '工作台', label: '订单工作台' }
 ]
 </script>
 

@@ -28,7 +28,7 @@
 
       <!-- 右侧操作区 -->
       <div class="header-right">
-        <router-link to="/orders/cart" class="header-icon-btn" title="购物车">
+        <router-link :to="{ path: '/orders/workbench', query: { tab: 'checkout' } }" class="header-icon-btn" title="购物车">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
           <span class="icon-label">购物车</span>
         </router-link>
@@ -53,7 +53,7 @@
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                 我的店铺
               </el-dropdown-item>
-              <el-dropdown-item @click="$router.push('/orders/list')">
+              <el-dropdown-item @click="$router.push('/orders/workbench')">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 我的订单
               </el-dropdown-item>
@@ -87,7 +87,7 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
             商品市场
           </el-menu-item>
-          <el-menu-item index="/orders/list">
+          <el-menu-item index="/orders/workbench">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
             我的订单
           </el-menu-item>
@@ -98,10 +98,6 @@
           <el-menu-item index="/chat">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             消息
-          </el-menu-item>
-          <el-menu-item index="/disputes">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            纠纷
           </el-menu-item>
         </el-menu>
       </div>
@@ -128,7 +124,7 @@ const searchKeyword = ref('')
 
 const activeTop = computed(() => {
   const p = route.path
-  if (p.startsWith('/orders')) return '/orders/list'
+  if (p.startsWith('/orders')) return '/orders/workbench'
   if (p.startsWith('/admin')) return '/admin/overview'
   if (p.startsWith('/users')) return '/products'
   return p

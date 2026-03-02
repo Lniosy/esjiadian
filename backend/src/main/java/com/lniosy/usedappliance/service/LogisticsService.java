@@ -3,6 +3,7 @@ package com.lniosy.usedappliance.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.lniosy.usedappliance.dto.logistics.LogisticsDto;
+import com.lniosy.usedappliance.dto.logistics.LogisticsTrackPointDto;
 import com.lniosy.usedappliance.entity.LogisticsRecord;
 import com.lniosy.usedappliance.entity.LogisticsTrack;
 import com.lniosy.usedappliance.entity.OrderInfo;
@@ -16,10 +17,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
 public class LogisticsService {
+    private static final DateTimeFormatter TRACK_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private final LogisticsRecordMapper logisticsRecordMapper;
     private final LogisticsTrackMapper logisticsTrackMapper;
     private final LogisticsGatewayResolver logisticsGatewayResolver;
@@ -87,15 +90,23 @@ public class LogisticsService {
                 .eq(LogisticsRecord::getOrderId, orderId)
                 .last("limit 1"));
         if (record == null) {
-            return new LogisticsDto(orderId, "", "", "CREATED", "暂无轨迹");
+            return new LogisticsDto(orderId, "", "", "CREATED", "暂无轨迹", List.of());
         }
 
-        LogisticsTrack latest = logisticsTrackMapper.selectOne(new LambdaQueryWrapper<LogisticsTrack>()
+        List<LogisticsTrack> allTracks = logisticsTrackMapper.selectList(new LambdaQueryWrapper<LogisticsTrack>()
                 .eq(LogisticsTrack::getLogisticsId, record.getId())
-                .orderByDesc(LogisticsTrack::getTrackTime)
-                .last("limit 1"));
-        String latestTrack = latest == null ? "暂无轨迹" : latest.getContent();
-        return new LogisticsDto(orderId, record.getCompanyCode(), record.getTrackingNo(), record.getStatus(), latestTrack);
+                .orderByDesc(LogisticsTrack::getTrackTime));
+
+        List<LogisticsTrackPointDto> trackItems = allTracks.stream()
+                .map(t -> new LogisticsTrackPointDto(
+                        t.getContent(),
+                        t.getTrackTime() == null ? "" : t.getTrackTime().format(TRACK_TIME_FORMATTER),
+                        t.getStatus()
+                ))
+                .toList();
+
+        String latestTrack = trackItems.isEmpty() ? "暂无轨迹" : trackItems.get(0).description();
+        return new LogisticsDto(orderId, record.getCompanyCode(), record.getTrackingNo(), record.getStatus(), latestTrack, trackItems);
     }
 
     private void appendTracks(LogisticsRecord record) {

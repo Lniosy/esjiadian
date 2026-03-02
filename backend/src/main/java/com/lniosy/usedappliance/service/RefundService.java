@@ -20,6 +20,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 
 @Service
 public class RefundService {
@@ -59,6 +63,7 @@ public class RefundService {
         r.setOrderId(orderId);
         r.setApplicantId(buyerId);
         r.setReason(req.reason());
+        r.setEvidenceImages(joinImages(req.images()));
         r.setStatus("PENDING");
         refundRequestMapper.insert(r);
 
@@ -188,6 +193,7 @@ public class RefundService {
                 r.getOrderId(),
                 r.getApplicantId(),
                 r.getReason(),
+                splitImages(r.getEvidenceImages()),
                 r.getStatus(),
                 r.getRejectReason(),
                 r.getReturnCompanyCode(),
@@ -216,5 +222,30 @@ public class RefundService {
             return null;
         }
         return dt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+    }
+
+    private String joinImages(List<String> images) {
+        if (images == null || images.isEmpty()) {
+            return null;
+        }
+        if (images.size() > 9) {
+            throw new BizException(400, "退款凭证图片最多9张");
+        }
+        return images.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .reduce((a, b) -> a + "\n" + b)
+                .orElse(null);
+    }
+
+    private List<String> splitImages(String value) {
+        if (value == null || value.isBlank()) {
+            return Collections.emptyList();
+        }
+        return Arrays.stream(value.split("\n"))
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .toList();
     }
 }

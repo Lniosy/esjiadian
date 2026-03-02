@@ -82,3 +82,11 @@ npm run dev
 ```bash
 docker run -d --name used-appliance-redis -p 6379:6379 redis:7-alpine
 ```
+
+## 图片上传说明
+- 后端图片上传接口：`POST /api/files/upload/image`（`multipart/form-data`，字段名 `file`）。
+- 统一限制：单图不超过 `5MB`，支持 `jpg/jpeg/png/webp/gif`。
+- 本地文件目录：`backend` 启动目录下的 `uploads/`（可通过 `app.file.upload-dir` 调整）。
+- 访问路径：`/uploads/{filename}`。
+- 业务引用策略：商品图、店铺图、聊天图、评价图、退款凭证图均仅在业务数据中保存 URL，不直接入库二进制。
+- 清理建议：当前不启用自动孤儿文件清理；演示环境建议按需手工清理长期未引用文件。

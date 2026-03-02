@@ -100,7 +100,7 @@
       </template>
 
       <div v-else class="empty-main">
-        <el-empty description="请选择会话，或从卖家主页点击“聊一聊”" />
+        <el-empty description="请选择会话，或先在订单工作台/卖家主页直接发送消息" />
       </div>
     </section>
 
@@ -135,7 +135,8 @@ import { Client } from '@stomp/stompjs'
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { chatApi, fileApi, productApi, userApi } from '../../api/modules'
+import { chatApi, productApi, userApi } from '../../api/modules'
+import { uploadImageFile } from '../../utils/upload-image'
 
 const currentUserId = Number(localStorage.getItem('userId') || 0)
 const token = localStorage.getItem('token') || ''
@@ -322,7 +323,7 @@ const onFileChange = async (e) => {
   const file = e.target.files?.[0]
   if (!file || !activePeerId.value) return
   try {
-    const uploaded = await fileApi.uploadImage(file)
+    const uploaded = await uploadImageFile(file)
     await chatApi.send({ toUserId: activePeerId.value, contentType: 'IMAGE', content: uploaded.url })
     await refreshCurrent()
   } finally {

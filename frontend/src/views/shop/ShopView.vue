@@ -10,7 +10,9 @@
 
       <el-form label-width="100px" class="shop-form">
         <el-form-item label="店铺名称"><el-input v-model="form.name" /></el-form-item>
-        <el-form-item label="店铺图标链接"><el-input v-model="form.logoUrl" /></el-form-item>
+        <el-form-item label="店铺图标">
+          <ImageUploader v-model="logoImages" :max="1" :allow-external-url="true" add-label="上传店铺图标" />
+        </el-form-item>
         <el-form-item label="简介"><el-input v-model="form.intro" type="textarea" :rows="3" /></el-form-item>
         <el-form-item label="类目"><el-input v-model="form.categories" placeholder="逗号分隔" /></el-form-item>
         <el-form-item label="地区"><el-input v-model="form.region" /></el-form-item>
@@ -172,14 +174,8 @@
       <el-form-item label="商品描述" required>
         <el-input v-model="productForm.description" type="textarea" :rows="3" placeholder="详细描述商品使用情况、外观状态等…" maxlength="500" show-word-limit />
       </el-form-item>
-      <el-form-item label="图片链接">
-        <div class="image-input-list">
-          <div v-for="(img, idx) in productForm.images" :key="idx" class="img-input-row">
-            <el-input v-model="productForm.images[idx]" :placeholder="`图片链接 ${idx+1}`" style="flex:1" />
-            <el-button type="danger" text circle @click="productForm.images.splice(idx, 1)">✕</el-button>
-          </div>
-          <el-button size="small" text type="primary" @click="productForm.images.push('')">＋ 添加图片链接</el-button>
-        </div>
+      <el-form-item label="商品图片">
+        <ImageUploader v-model="productForm.images" :max="9" :allow-external-url="true" add-label="上传商品图" />
       </el-form-item>
     </el-form>
     <template #footer>
@@ -239,11 +235,16 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { evaluationApi, productApi, shopApi } from '../../api/modules'
+import ImageUploader from '../../components/common/ImageUploader.vue'
 import { productStatusText } from '../../utils/display'
 
 const form = reactive({ id: null, name: '', logoUrl: '', intro: '', categories: '', region: '' })
 const overview = ref(null)
 const ratingDetail = ref(null)
+const logoImages = computed({
+  get: () => (form.logoUrl ? [form.logoUrl] : []),
+  set: (urls) => { form.logoUrl = Array.isArray(urls) && urls[0] ? urls[0] : '' }
+})
 
 // ---- 商品新增/编辑对话框 ----
 const productDialog = reactive({ visible: false, editId: null, submitting: false })
@@ -406,18 +407,6 @@ onMounted(() => {
   max-height: 60vh;
   overflow-y: auto;
   padding-right: 4px;
-}
-
-.image-input-list {
-  display: grid;
-  gap: 8px;
-  width: 100%;
-}
-
-.img-input-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 
 .tag-wrap {

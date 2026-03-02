@@ -11,11 +11,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
 @Service
 public class LocalFileStorageService {
+    private static final long MAX_IMAGE_SIZE = 5 * 1024 * 1024L;
+    private static final List<String> ALLOWED_EXTENSIONS = List.of(".jpg", ".jpeg", ".png", ".webp", ".gif");
     private final Path root;
 
     public LocalFileStorageService(@Value("${app.file.upload-dir:uploads}") String uploadDir) {
@@ -35,12 +38,12 @@ public class LocalFileStorageService {
         if (contentType == null || !contentType.toLowerCase(Locale.ROOT).startsWith("image/")) {
             throw new BizException(400, "仅支持图片上传");
         }
-        if (file.getSize() > 5 * 1024 * 1024L) {
+        if (file.getSize() > MAX_IMAGE_SIZE) {
             throw new BizException(400, "图片大小不能超过5MB");
         }
         String ext = extension(file.getOriginalFilename());
-        if (ext.isBlank()) {
-            ext = ".png";
+        if (!ALLOWED_EXTENSIONS.contains(ext)) {
+            throw new BizException(400, "仅支持 jpg/jpeg/png/webp/gif 格式图片");
         }
         String filename = UUID.randomUUID().toString().replace("-", "") + ext;
         Path target = root.resolve(filename);
