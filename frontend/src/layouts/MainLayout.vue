@@ -120,7 +120,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '../stores/auth'
@@ -129,6 +129,12 @@ const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const searchKeyword = ref('')
+
+onMounted(() => {
+  if (auth.token && !auth.profile) {
+    auth.fetchProfile()
+  }
+})
 
 const activeTop = computed(() => {
   const p = route.path
@@ -141,10 +147,14 @@ const activeTop = computed(() => {
 const go = (path) => router.push(path)
 
 const userLabel = computed(() => {
+  if (auth.profile?.nickname) return auth.profile.nickname
   return `用户${auth.userId || ''}`
 })
 
 const userAvatarText = computed(() => {
+  if (auth.profile?.nickname) {
+    return auth.profile.nickname.slice(0, 2)
+  }
   return String(auth.userId || '我').slice(-2)
 })
 
