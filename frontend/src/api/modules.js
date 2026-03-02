@@ -12,7 +12,11 @@ export const userApi = {
   publicProfile: (id) => http.get(`/api/users/${id}/public`),
   updateMe: (payload) => http.put('/api/users/me', payload),
   addresses: () => http.get('/api/users/me/addresses'),
-  addAddress: (payload) => http.post('/api/users/me/addresses', payload)
+  addAddress: (payload) => http.post('/api/users/me/addresses', payload),
+  updateAddress: (id, payload) => http.put(`/api/users/me/addresses/${id}`, payload),
+  deleteAddress: (id) => http.delete(`/api/users/me/addresses/${id}`),
+  applyRealName: (payload) => http.post('/api/verification/real-name', payload),
+  verificationStatus: () => http.get('/api/verification/status')
 }
 
 export const productApi = {

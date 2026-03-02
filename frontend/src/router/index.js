@@ -11,6 +11,7 @@ const ShopView = () => import('../views/shop/ShopView.vue')
 const SellerHomeView = () => import('../views/shop/SellerHomeView.vue')
 const ChatView = () => import('../views/chat/ChatView.vue')
 const NotificationView = () => import('../views/user/NotificationView.vue')
+const ProfileView = () => import('../views/user/ProfileView.vue')
 const AdminLayoutView = () => import('../views/admin/AdminLayoutView.vue')
 const AdminOverviewView = () => import('../views/admin/AdminOverviewView.vue')
 const AdminMonitorView = () => import('../views/admin/AdminMonitorView.vue')
@@ -42,6 +43,7 @@ const router = createRouter({
         { path: 'users/:id', component: SellerHomeView },
         { path: 'chat', component: ChatView },
         { path: 'notifications', component: NotificationView },
+        { path: 'profile', component: ProfileView },
         { path: 'disputes', redirect: '/orders/workbench?tab=afterSales' },
         {
           path: 'admin',
