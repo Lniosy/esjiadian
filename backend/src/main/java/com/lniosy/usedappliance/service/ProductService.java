@@ -224,8 +224,8 @@ public class ProductService {
         Shop shop = shopMapper.selectOne(new LambdaQueryWrapper<Shop>()
                 .eq(Shop::getUserId, p.getSellerId())
                 .last("LIMIT 1"));
-        String shopName = (shop != null && shop.getName() != null && !shop.getName().isBlank())
-                ? shop.getName() : null;
+        String shopName = shop != null ? shop.getName() : null;
+        String shopLogo = shop != null ? shop.getLogoUrl() : null;
         List<String> images = productImageMapper.selectList(new LambdaQueryWrapper<ProductImage>()
                         .eq(ProductImage::getProductId, p.getId())
                         .orderByAsc(ProductImage::getSort))
@@ -233,7 +233,7 @@ public class ProductService {
         return new ProductDto(p.getId(), p.getSellerId(),
                 seller == null ? "未知用户" : seller.getNickname(),
                 seller == null ? "" : seller.getAvatarUrl(),
-                shopName,
+                shopName, shopLogo,
                 p.getTitle(), p.getCategoryId(), p.getBrand(), p.getModel(),
                 p.getPurchaseDate(), p.getConditionLevel(), p.getFunctionStatus(), p.getRepairHistory(),
                 p.getDescription(), p.getVideoUrl(), p.getPrice(), p.getOriginalPrice(),

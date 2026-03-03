@@ -65,7 +65,11 @@
             <div class="card-footer">
               <span class="card-price">¥{{ item.price }}</span>
               <button class="card-seller" @click.stop="goSeller(item.sellerId)">
-                <el-avatar :size="20" style="font-size:10px;background:var(--c-primary);">
+                <el-avatar
+                  :size="20"
+                  :src="item.sellerShopLogo || item.sellerAvatarUrl"
+                  style="font-size:10px;background:var(--c-primary);"
+                >
                   {{ (item.sellerShopName || item.sellerNickname || '').slice(0,2) || '卖' }}
                 </el-avatar>
                 <span>{{ item.sellerShopName || item.sellerNickname || `用户${item.sellerId}` }}</span>
@@ -102,7 +106,11 @@
           <p>{{ detailItem.description }}</p>
         </div>
         <div class="detail-seller-row">
-          <el-avatar :size="36" style="background:var(--c-primary);font-size:14px;">
+          <el-avatar
+            :size="36"
+            :src="detailItem.sellerShopLogo || detailItem.sellerAvatarUrl"
+            style="background:var(--c-primary);font-size:14px;"
+          >
             {{ (detailItem.sellerShopName || detailItem.sellerNickname || '').slice(0,2) || '卖' }}
           </el-avatar>
           <div>
