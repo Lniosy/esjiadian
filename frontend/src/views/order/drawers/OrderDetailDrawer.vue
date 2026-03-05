@@ -88,7 +88,25 @@
       <div class="action-group">
         <el-button @click="visible = false">关闭</el-button>
         <el-button :loading="loadingAny" @click="refreshAll">刷新详情</el-button>
-        <el-button type="primary" @click="emitAction('shipment')">去发货</el-button>
+        <template v-if="viewMode === 'buyer'">
+          <el-button
+            v-if="currentOrderStatus === 'PENDING_PAYMENT'"
+            type="success"
+            :loading="actionLoading"
+            @click="handlePay"
+          >
+            去支付
+          </el-button>
+          <el-button
+            v-if="currentOrderStatus === 'PENDING_RECEIPT'"
+            type="primary"
+            :loading="actionLoading"
+            @click="handleConfirmReceipt"
+          >
+            确认收货
+          </el-button>
+        </template>
+        <el-button v-if="viewMode === 'seller'" type="primary" @click="emitAction('shipment')">去发货</el-button>
         <el-button type="warning" @click="emitAction('refund')">去退款</el-button>
         <el-button type="danger" @click="emitAction('dispute')">去投诉</el-button>
       </div>
@@ -98,7 +116,8 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { disputeApi, logisticsApi, orderApi, refundApi, userApi, shopApi } from '../../../api/modules'
+import { ElMessage } from 'element-plus'
+import { disputeApi, logisticsApi, orderApi, paymentApi, refundApi, userApi, shopApi } from '../../../api/modules'
 import { disputeStatusText, logisticsStatusText, orderStatusText, refundStatusText } from '../../../utils/display'
 
 const props = defineProps({
@@ -116,7 +135,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'open-drawer'])
+const emit = defineEmits(['update:modelValue', 'open-drawer', 'success'])
 
 const activeTab = ref('basic')
 const detailOrder = ref(null)
@@ -129,6 +148,7 @@ const sellerName = ref('')
 const loadingOrder = ref(false)
 const loadingLogistics = ref(false)
 const loadingAfterSales = ref(false)
+const actionLoading = ref(false)
 
 const visible = computed({
   get: () => props.modelValue,
@@ -158,13 +178,54 @@ const trackItems = computed(() => {
 const refundStep = computed(() => {
   const status = String(refundDetail.value?.status || 'NONE').toUpperCase()
   if (status === 'NONE') return 0
-  if (['PENDING', 'APPROVED', 'REJECTED'].includes(status)) return 1
+  if (['PENDING', 'APPROVED'].includes(status)) return 1
   if (['RETURN_REQUIRED', 'BUYER_SHIPPED'].includes(status)) return 2
-  if (['FINISHED', 'CANCELED'].includes(status)) return 3
+  if (['FINISHED', 'COMPLETED', 'REJECTED', 'CANCELED'].includes(status)) return 4 // el-steps indexed from 0, step 4 will finish all
   return 1
 })
 
 const loadingAny = computed(() => loadingOrder.value || loadingLogistics.value || loadingAfterSales.value)
+const currentOrderStatus = computed(() => String(detailOrder.value?.status || props.order?.status || '').toUpperCase())
+
+const handlePay = async () => {
+  const orderId = Number(props.order?.id || 0)
+  if (!orderId) {
+    ElMessage.warning('请先选择订单')
+    return
+  }
+  actionLoading.value = true
+  try {
+    const res = await paymentApi.alipay(orderId)
+    const outTradeNo = res.outTradeNo
+    await paymentApi.callback('alipay', { orderId, outTradeNo, success: true })
+    ElMessage.success('支付成功')
+    emit('success')
+    await refreshAll()
+  } catch (err) {
+    ElMessage.error(err.message || '支付失败')
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+const handleConfirmReceipt = async () => {
+  const orderId = Number(props.order?.id || 0)
+  if (!orderId) {
+    ElMessage.warning('请先选择订单')
+    return
+  }
+  actionLoading.value = true
+  try {
+    await orderApi.confirmReceipt(orderId)
+    ElMessage.success('已确认收货')
+    emit('success')
+    await refreshAll()
+  } catch (err) {
+    ElMessage.error(err.message || '确认收货失败')
+  } finally {
+    actionLoading.value = false
+  }
+}
 
 const refreshAll = async () => {
   if (!props.order?.id) return
