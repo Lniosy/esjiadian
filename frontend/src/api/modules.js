@@ -1,5 +1,20 @@
 import http from './http'
 
+export const recommendApi = {
+  home: () => http.get('/api/recommend/home'),
+  related: (productId) => http.get(`/api/recommend/products/${productId}`),
+  recordEvent: (payload) => http.post('/api/recommend/events', payload),
+  featured: () => http.get('/api/recommend/featured'),
+  nearby: () => http.get('/api/recommend/nearby')
+}
+
+export const favoriteApi = {
+  ids: () => http.get('/api/favorites/ids'),
+  exists: (productId) => http.get(`/api/favorites/${productId}/exists`),
+  add: (productId) => http.post(`/api/favorites/${productId}`),
+  remove: (productId) => http.delete(`/api/favorites/${productId}`)
+}
+
 export const authApi = {
   sendCode: (payload) => http.post('/api/auth/code/send', payload),
   register: (payload) => http.post('/api/auth/register', payload),
@@ -25,7 +40,8 @@ export const productApi = {
   create: (payload) => http.post('/api/products', payload),
   update: (id, payload) => http.put(`/api/products/${id}`, payload),
   onShelf: (id) => http.post(`/api/products/${id}/on-shelf`),
-  offShelf: (id) => http.post(`/api/products/${id}/off-shelf`)
+  offShelf: (id) => http.post(`/api/products/${id}/off-shelf`),
+  categoryTree: () => http.get('/api/categories/tree')
 }
 
 export const shopApi = {
@@ -120,5 +136,6 @@ export const adminApi = {
   users: (params) => http.get('/api/admin/users', { params }),
   enableUser: (userId) => http.post(`/api/admin/users/${userId}/enable`),
   disableUser: (userId) => http.post(`/api/admin/users/${userId}/disable`),
-  orders: () => http.get('/api/admin/orders')
+  orders: () => http.get('/api/admin/orders'),
+  errorLogs: (params) => http.get('/api/admin/error-logs', { params })
 }

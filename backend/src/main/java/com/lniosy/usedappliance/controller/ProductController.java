@@ -43,11 +43,11 @@ public class ProductController {
 
     @GetMapping
     public ApiResponse<PageResult<ProductDto>> list(@ModelAttribute ProductQuery query) {
-        return ApiResponse.ok(productService.list(query));
+        return ApiResponse.ok(productService.list(query, SecurityUtils.currentUserId()));
     }
 
     @GetMapping("/{id}")
     public ApiResponse<ProductDto> detail(@PathVariable Long id) {
-        return ApiResponse.ok(productService.detail(id));
+        return ApiResponse.ok(productService.detail(id, SecurityUtils.currentUserId()));
     }
 }

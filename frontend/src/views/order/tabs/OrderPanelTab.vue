@@ -15,11 +15,32 @@
           <el-tag>{{ orderStatusText(scope.row.status) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" min-width="260">
+      <el-table-column label="操作" min-width="320">
         <template #default="scope">
           <div class="action-group">
             <el-button size="small" @click.stop="emitOpen('detail', scope.row)">详情</el-button>
+            <template v-if="viewMode === 'buyer'">
+              <el-button
+                v-if="scope.row.status === 'PENDING_PAYMENT'"
+                size="small"
+                type="success"
+                :loading="actionLoading === scope.row.id"
+                @click.stop="handlePay(scope.row)"
+              >
+                去支付
+              </el-button>
+              <el-button
+                v-if="scope.row.status === 'PENDING_RECEIPT'"
+                size="small"
+                type="primary"
+                :loading="actionLoading === scope.row.id"
+                @click.stop="handleConfirmReceipt(scope.row)"
+              >
+                确认收货
+              </el-button>
+            </template>
             <el-button
+              v-if="viewMode === 'seller'"
               size="small"
               type="primary"
               :disabled="!canShip(scope.row)"
@@ -38,7 +59,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import { ElMessage } from 'element-plus'
+import { orderApi, paymentApi } from '../../../api/modules'
 import { orderStatusText } from '../../../utils/display'
 
 const props = defineProps({
@@ -52,7 +75,9 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['select-order', 'open-drawer'])
+const emit = defineEmits(['select-order', 'open-drawer', 'success'])
+
+const actionLoading = ref(null)
 
 const viewLabel = computed(() => {
   if (props.viewMode === 'seller') return '卖家视图'
@@ -67,6 +92,34 @@ const selectRow = (row) => {
 const emitOpen = (drawer, row) => {
   emit('select-order', row)
   emit('open-drawer', { drawer, order: row })
+}
+
+const handlePay = async (order) => {
+  actionLoading.value = order.id
+  try {
+    const res = await paymentApi.alipay(order.id)
+    const outTradeNo = res.outTradeNo
+    await paymentApi.callback('alipay', { orderId: order.id, outTradeNo, success: true })
+    ElMessage.success('支付成功')
+    emit('success')
+  } catch (err) {
+    ElMessage.error(err.message || '支付失败')
+  } finally {
+    actionLoading.value = null
+  }
+}
+
+const handleConfirmReceipt = async (order) => {
+  actionLoading.value = order.id
+  try {
+    await orderApi.confirmReceipt(order.id)
+    ElMessage.success('已确认收货')
+    emit('success')
+  } catch (err) {
+    ElMessage.error(err.message || '确认收货失败')
+  } finally {
+    actionLoading.value = null
+  }
 }
 
 const canShip = (row) => String(row?.status || '').toUpperCase() === 'PENDING_SHIPMENT'

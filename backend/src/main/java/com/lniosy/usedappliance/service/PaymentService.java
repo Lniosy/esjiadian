@@ -5,10 +5,12 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.lniosy.usedappliance.common.BizException;
 import com.lniosy.usedappliance.dto.payment.PaymentCreateResponse;
 import com.lniosy.usedappliance.entity.OrderInfo;
+import com.lniosy.usedappliance.entity.OrderItem;
 import com.lniosy.usedappliance.entity.PaymentRecord;
 import com.lniosy.usedappliance.integration.PaymentGateway;
 import com.lniosy.usedappliance.integration.PaymentGatewayResolver;
 import com.lniosy.usedappliance.mapper.OrderInfoMapper;
+import com.lniosy.usedappliance.mapper.OrderItemMapper;
 import com.lniosy.usedappliance.mapper.PaymentRecordMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,18 +19,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class PaymentService {
     private final PaymentRecordMapper paymentRecordMapper;
     private final OrderInfoMapper orderInfoMapper;
+    private final OrderItemMapper orderItemMapper;
     private final OrderService orderService;
     private final PaymentGatewayResolver paymentGatewayResolver;
     private final NotificationService notificationService;
+    private final RecommendTraceService recommendTraceService;
 
     public PaymentService(PaymentRecordMapper paymentRecordMapper, OrderInfoMapper orderInfoMapper,
+                          OrderItemMapper orderItemMapper,
                           OrderService orderService, PaymentGatewayResolver paymentGatewayResolver,
-                          NotificationService notificationService) {
+                          NotificationService notificationService,
+                          RecommendTraceService recommendTraceService) {
         this.paymentRecordMapper = paymentRecordMapper;
         this.orderInfoMapper = orderInfoMapper;
+        this.orderItemMapper = orderItemMapper;
         this.orderService = orderService;
         this.paymentGatewayResolver = paymentGatewayResolver;
         this.notificationService = notificationService;
+        this.recommendTraceService = recommendTraceService;
     }
 
     public PaymentCreateResponse create(Long orderId, String channel) {
@@ -83,8 +91,14 @@ public class PaymentService {
         if (success) {
             orderService.markPaid(orderId);
             OrderInfo order = orderInfoMapper.selectById(orderId);
+            OrderItem item = orderItemMapper.selectOne(new LambdaQueryWrapper<OrderItem>()
+                    .eq(OrderItem::getOrderId, orderId)
+                    .last("limit 1"));
             if (order != null) {
                 notificationService.create(order.getBuyerId(), "PAYMENT", "支付成功", "订单号: " + order.getOrderNo());
+                if (item != null) {
+                    recommendTraceService.recordEvent(order.getBuyerId(), item.getProductId(), "PAY_SUCCESS", 4.0);
+                }
             }
         }
     }

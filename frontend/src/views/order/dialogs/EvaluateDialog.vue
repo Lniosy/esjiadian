@@ -28,7 +28,7 @@
         <el-form-item label="上传图片">
           <ImageUploader
             v-model="form.images"
-            :max="9"
+            :max="6"
             :allow-external-url="true"
             add-label="选择评价图片"
           />

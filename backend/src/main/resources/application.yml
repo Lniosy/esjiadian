@@ -45,12 +45,42 @@ app:
       cpu-threshold: 0.85
       process-cpu-threshold: 0.85
       jvm-memory-usage-threshold: 0.90
+      disk-usage-threshold: 0.90
       avg-response-ms-threshold: 500
       redis-hit-rate-threshold: 0.70
   file:
     upload-dir: uploads
   evaluation:
     recompute-cron: 0 0 3 * * *
+  security:
+    rate-limit:
+      enabled: true
+      window-seconds: 60
+      max-anonymous: 120
+      max-authenticated: 300
+      groups:
+        - name: AUTH
+          path-prefixes:
+            - /api/auth/
+          max-anonymous: 30
+          max-authenticated: 120
+        - name: ORDER
+          path-prefixes:
+            - /api/orders
+            - /api/payments
+            - /api/cart
+          max-anonymous: 60
+          max-authenticated: 200
+        - name: CHAT
+          path-prefixes:
+            - /api/chat/
+          max-anonymous: 60
+          max-authenticated: 360
+        - name: ADMIN
+          path-prefixes:
+            - /api/admin/
+          max-anonymous: 30
+          max-authenticated: 240
 
 logging:
   level:

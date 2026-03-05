@@ -31,3 +31,5 @@ frontend/.cache/
 # reports/screenshots
 reports/
 screenshots/
+docs/e2e-screenshots-*/
+docs/Browser-MCP-全角色全功能测试报告-*.md

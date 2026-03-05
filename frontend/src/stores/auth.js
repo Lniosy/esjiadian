@@ -10,11 +10,24 @@ export const useAuthStore = defineStore('auth', {
   actions: {
     async login(account, password) {
       const data = await authApi.loginPassword({ account, password })
+      this.setAuth(data)
+      await this.fetchProfile()
+    },
+    async loginByCode(account, verifyCode) {
+      const data = await authApi.loginCode({ account, verifyCode })
+      this.setAuth(data)
+      await this.fetchProfile()
+    },
+    async register(account, password, verifyCode, agreed) {
+      await authApi.register({ account, password, verifyCode, agreed })
+      // 注册后自动登录
+      await this.login(account, password)
+    },
+    setAuth(data) {
       this.token = data.token
       this.userId = data.userId
       localStorage.setItem('token', data.token)
       localStorage.setItem('userId', String(data.userId))
-      await this.fetchProfile()
     },
     async fetchProfile() {
       if (!this.token) return

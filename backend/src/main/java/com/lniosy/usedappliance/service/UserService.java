@@ -112,7 +112,38 @@ public class UserService {
     }
 
     public String applyRealName(Long userId, RealNameVerifyRequest req) {
+        // 1. 身份证格式校验 (简单18位数字/末位X校验)
+        if (!req.idCard().matches("^\\d{17}[\\dX]$")) {
+            throw new BizException(400, "身份证号格式不正确");
+        }
+        // 2. 真实姓名长度校验 (2-20个汉字)
+        if (!req.realName().matches("^[\\u4e00-\\u9fa5]{2,20}$")) {
+            throw new BizException(400, "姓名格式不正确，需为2-20个汉字");
+        }
+        // 3. 校验手机号是否与注册手机号一致
+        SysUser user = sysUserMapper.selectById(userId);
+        if (user == null) {
+            throw new BizException(404, "用户不存在");
+        }
+        if (user.getPhone() != null && !user.getPhone().equals(req.phone())) {
+            throw new BizException(400, "手机号必须与注册手机号一致");
+        }
+
         String masked = maskIdCard(req.idCard());
+
+        // 4. 校验该身份证是否已被其他账号认证 (基于已脱敏ID的最佳努力校验)
+        // 注意：由于数据库只存了脱敏后的，这里只能做初步过滤
+        Long otherUser = userAuthMapper.selectList(new LambdaQueryWrapper<UserAuth>()
+                        .eq(UserAuth::getIdCardMasked, masked)
+                        .eq(UserAuth::getStatus, "APPROVED"))
+                .stream()
+                .filter(a -> !a.getUserId().equals(userId))
+                .map(UserAuth::getUserId)
+                .findFirst().orElse(null);
+        if (otherUser != null) {
+            throw new BizException(400, "该身份证已被其他账号认证");
+        }
+
         UserAuth existing = userAuthMapper.selectOne(new LambdaQueryWrapper<UserAuth>()
                 .eq(UserAuth::getUserId, userId)
                 .last("limit 1"));

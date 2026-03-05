@@ -5,6 +5,7 @@
 :root {
   /* ---- 颜色体系 ---- */
   --c-primary:       #FF5722;
+  --c-primary-rgb:   255, 87, 34;
   --c-primary-dark:  #E64A19;
   --c-primary-light: #FF8A65;
   --c-primary-bg:    #FFF3F0;

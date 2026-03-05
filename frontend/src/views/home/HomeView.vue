@@ -23,33 +23,54 @@
       </div>
     </section>
 
+    <!-- 精选推荐 (轮播) -->
+    <section class="featured-section" v-if="featuredProducts.length">
+      <div class="section-header">
+        <h2 class="section-title">精选好物</h2>
+      </div>
+      <el-carousel :interval="4000" type="card" height="200px" indicator-position="outside">
+        <el-carousel-item v-for="item in featuredProducts" :key="item.id">
+          <div class="featured-card" @click="openProduct(item)">
+            <img :src="item.images?.[0]" class="featured-img" />
+            <div class="featured-info">
+              <span class="featured-title">{{ item.title }}</span>
+              <span class="featured-price">¥{{ item.price }}</span>
+            </div>
+          </div>
+        </el-carousel-item>
+      </el-carousel>
+    </section>
+
     <!-- 分类导航 -->
     <section class="category-section">
       <div class="category-grid">
         <button
           v-for="cat in categories"
-          :key="cat.label"
+          :key="cat.id"
           class="category-item"
           @click="goCategory(cat)"
         >
           <div class="cat-icon" :style="{ background: cat.bg }">{{ cat.icon }}</div>
-          <span class="cat-label">{{ cat.label }}</span>
+          <span class="cat-label">{{ cat.name }}</span>
         </button>
       </div>
     </section>
 
-    <!-- 最新上架 -->
+    <!-- 猜你喜欢 -->
     <section class="section-block">
       <div class="section-header">
-        <h2 class="section-title">最新上架</h2>
+        <div>
+          <h2 class="section-title">猜你喜欢（个性化）</h2>
+          <div class="section-subtitle">根据你的浏览/加购/下单行为生成</div>
+        </div>
         <router-link to="/products" class="section-more">查看更多 →</router-link>
       </div>
       <div v-if="loading" class="products-skeleton">
         <div v-for="i in 8" :key="i" class="skeleton-card"></div>
       </div>
-      <div v-else-if="latestProducts.length" class="products-grid">
+      <div v-else-if="recommendProducts.length" class="products-grid">
         <article
-          v-for="item in latestProducts"
+          v-for="item in recommendProducts"
           :key="item.id"
           class="product-card"
           @click="openProduct(item)"
@@ -58,6 +79,9 @@
             <img v-if="item.images?.[0]" :src="item.images[0]" :alt="item.title" class="card-img" />
             <div v-else class="card-img no-img">暂无图片</div>
             <div class="card-trade-tag">{{ item.tradeMethods }}</div>
+            <button class="fav-btn" :class="{ active: isFavorited(item.id) }" @click.stop="toggleFavorite(item)">
+              <el-icon><StarFilled v-if="isFavorited(item.id)" /><Star v-else /></el-icon>
+            </button>
           </div>
           <div class="card-body">
             <p class="card-title">{{ item.title }}</p>
@@ -68,17 +92,50 @@
                 <el-avatar
                   :size="20"
                   :src="item.sellerShopLogo || item.sellerAvatarUrl"
-                  style="font-size:10px;background:var(--c-primary);"
+                  style="font-size:10px;background:var(--c-primary);flex-shrink:0;"
                 >
                   {{ (item.sellerShopName || item.sellerNickname || '').slice(0,2) || '卖' }}
                 </el-avatar>
-                <span>{{ item.sellerShopName || item.sellerNickname || `用户${item.sellerId}` }}</span>
+                <span class="seller-name">{{ item.sellerShopName || item.sellerNickname || `用户${item.sellerId}` }}</span>
+                <span class="seller-score">⭐{{ (item.sellerScore || 5.0).toFixed(1) }}</span>
               </button>
             </div>
           </div>
         </article>
       </div>
       <el-empty v-else description="暂无商品，快去发布你的闲置吧" />
+    </section>
+
+    <!-- 附近好物 -->
+    <section class="section-block nearby-section" v-if="nearbyProducts.length">
+      <div class="section-header">
+        <h2 class="section-title">附近好物</h2>
+        <span class="section-subtitle">同城交易更省心</span>
+      </div>
+      <div class="products-grid">
+        <article
+          v-for="item in nearbyProducts"
+          :key="item.id"
+          class="product-card"
+          @click="openProduct(item)"
+        >
+          <div class="card-img-wrap">
+            <img v-if="item.images?.[0]" :src="item.images[0]" :alt="item.title" class="card-img" />
+            <div v-else class="card-img no-img">暂无图片</div>
+            <div class="card-trade-tag">{{ item.tradeMethods }}</div>
+            <button class="fav-btn" :class="{ active: isFavorited(item.id) }" @click.stop="toggleFavorite(item)">
+              <el-icon><StarFilled v-if="isFavorited(item.id)" /><Star v-else /></el-icon>
+            </button>
+          </div>
+          <div class="card-body">
+            <p class="card-title">{{ item.title }}</p>
+            <div class="card-meta">{{ item.region }}</div>
+            <div class="card-footer">
+              <span class="card-price">¥{{ item.price }}</span>
+            </div>
+          </div>
+        </article>
+      </div>
     </section>
 
     <!-- 商品详情 Drawer（复用） -->
@@ -90,14 +147,29 @@
           </el-carousel-item>
         </el-carousel>
         <div v-else class="detail-no-img">暂无图片</div>
+        
+        <!-- 视频展示 -->
+        <div v-if="detailItem.videoUrl" class="detail-video-wrap">
+          <div class="detail-label">视频演示</div>
+          <video :src="detailItem.videoUrl" controls class="detail-video"></video>
+        </div>
+
         <div class="detail-price-row">
           <span class="detail-price">¥{{ detailItem.price }}</span>
           <el-tag size="small">已售 {{ detailItem.salesCount || 0 }}</el-tag>
+          <el-button 
+            :type="isFavorited(detailItem.id) ? 'warning' : ''" 
+            :icon="isFavorited(detailItem.id) ? 'StarFilled' : 'Star'"
+            circle
+            style="margin-left:auto"
+            @click="toggleFavorite(detailItem)"
+          />
         </div>
         <el-descriptions :column="2" border size="small" class="detail-specs">
           <el-descriptions-item label="品牌">{{ detailItem.brand || '-' }}</el-descriptions-item>
           <el-descriptions-item label="型号">{{ detailItem.model || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="成色">{{ detailItem.condition || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="成色">{{ detailItem.conditionLevel || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="功能状态">{{ detailItem.functionStatus || '-' }}</el-descriptions-item>
           <el-descriptions-item label="地区">{{ detailItem.region || '-' }}</el-descriptions-item>
           <el-descriptions-item label="交易方式" :span="2">{{ detailItem.tradeMethods || '-' }}</el-descriptions-item>
         </el-descriptions>
@@ -114,7 +186,13 @@
             {{ (detailItem.sellerShopName || detailItem.sellerNickname || '').slice(0,2) || '卖' }}
           </el-avatar>
           <div>
-            <div class="detail-seller-name">{{ detailItem.sellerShopName || detailItem.sellerNickname || `卖家${detailItem.sellerId}` }}</div>
+            <div class="detail-seller-header">
+              <span class="detail-seller-name">{{ detailItem.sellerShopName || detailItem.sellerNickname || `卖家${detailItem.sellerId}` }}</span>
+              <el-tag v-if="detailItem.sellerAuthStatus === 'APPROVED'" size="small" type="success" effect="plain" class="auth-tag">已认证</el-tag>
+              <el-tag v-else-if="detailItem.sellerAuthStatus === 'PENDING'" size="small" type="warning" effect="plain" class="auth-tag">审核中</el-tag>
+              <el-tag v-else size="small" type="info" effect="plain" class="auth-tag">未认证</el-tag>
+            </div>
+            <div class="detail-seller-score" v-if="detailItem.sellerScore">信誉分: {{ detailItem.sellerScore.toFixed(1) }}</div>
             <el-button text type="primary" size="small" @click="goSeller(detailItem.sellerId); detailVisible = false">
               进入店铺 →
             </el-button>
@@ -122,9 +200,10 @@
         </div>
       </div>
       <template #footer>
-        <div style="display:flex;gap:10px;">
-          <el-button style="flex:1" @click="addToCart(detailItem.id)">加入购物车</el-button>
-          <el-button type="primary" style="flex:1" @click="goSeller(detailItem.sellerId); detailVisible = false">进店咨询</el-button>
+        <div class="drawer-footer-btns">
+          <el-button @click="addToCart(detailItem.id)">加入购物车</el-button>
+          <el-button type="primary" plain @click="goSeller(detailItem.sellerId); detailVisible = false">进店咨询</el-button>
+          <el-button type="primary" @click="buyNow(detailItem.id)">立即购买</el-button>
         </div>
       </template>
     </el-drawer>
@@ -132,30 +211,62 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { orderApi, productApi } from '../../api/modules'
+import { Star, StarFilled } from '@element-plus/icons-vue'
+import { orderApi, productApi, recommendApi, favoriteApi } from '../../api/modules'
 
 const router = useRouter()
-const latestProducts = ref([])
+const recommendProducts = ref([])
+const featuredProducts = ref([])
+const nearbyProducts = ref([])
 const loading = ref(false)
 const detailVisible = ref(false)
 const detailItem = ref(null)
+const categories = ref([])
+const reportedExposures = new Map()
+const favoriteIds = ref(new Set())
 
-const categories = [
-  { icon: '📺', label: '电视', bg: '#FFF3E0', keyword: '电视' },
-  { icon: '❄️', label: '冰箱', bg: '#E3F2FD', keyword: '冰箱' },
-  { icon: '🌀', label: '洗衣机', bg: '#E8F5E9', keyword: '洗衣机' },
-  { icon: '💨', label: '空调', bg: '#E0F7FA', keyword: '空调' },
-  { icon: '🖥️', label: '电脑', bg: '#EDE7F6', keyword: '电脑' },
-  { icon: '📱', label: '手机', bg: '#FCE4EC', keyword: '手机' },
-  { icon: '🎵', label: '音响', bg: '#F3E5F5', keyword: '音响' },
-  { icon: '🔌', label: '其他', bg: '#FFF9C4', keyword: '' }
-]
+const reportExpose = (productId) => {
+  if (!productId) return
+  const now = Date.now()
+  const last = reportedExposures.get(productId) || 0
+  if (now - last < 10000) return
+  reportedExposures.set(productId, now)
+  recommendApi.recordEvent({
+    productId,
+    eventType: 'RECOMMEND_EXPOSE',
+    eventScore: 0.4
+  }).catch(() => {})
+}
+
+const categoryStyles = {
+  '电视': { icon: '📺', bg: '#FFF3E0' },
+  '冰箱': { icon: '❄️', bg: '#E3F2FD' },
+  '洗衣机': { icon: '🌀', bg: '#E8F5E9' },
+  '空调': { icon: '💨', bg: '#E0F7FA' },
+  '电脑': { icon: '🖥️', bg: '#EDE7F6' },
+  '手机': { icon: '📱', bg: '#FCE4EC' },
+  '音响': { icon: '🎵', bg: '#F3E5F5' },
+  '其他': { icon: '🔌', bg: '#FFF9C4' }
+}
+
+const getCategoryStyle = (name) => {
+  for (const key in categoryStyles) {
+    if (name && name.includes(key)) return categoryStyles[key]
+  }
+  return categoryStyles['其他']
+}
 
 const goCategory = (cat) => {
-  router.push({ path: '/products', query: cat.keyword ? { keyword: cat.keyword } : {} })
+  recommendApi.recordEvent({
+    productId: null,
+    categoryId: cat.id,
+    eventType: 'CATEGORY_CLICK',
+    eventScore: 1.0
+  }).catch(() => {})
+  router.push({ path: '/products', query: { categoryId: cat.id } })
 }
 
 const goSeller = (sellerId) => {
@@ -172,16 +283,76 @@ const addToCart = async (productId) => {
   ElMessage.success('已加入购物车')
 }
 
-onMounted(async () => {
-  loading.value = true
+const buyNow = async (productId) => {
   try {
-    const res = await productApi.list({ pageNum: 1, pageSize: 12, sortBy: 'LATEST' })
-    latestProducts.value = res.list || []
+    await orderApi.addCart(productId)
+    detailVisible.value = false
+    router.push({ path: '/orders/workbench', query: { tab: 'checkout' } })
+  } catch (err) {
+    ElMessage.error(err.message || '操作失败')
+  }
+}
+
+const isFavorited = (id) => favoriteIds.value.has(id)
+
+const toggleFavorite = async (item) => {
+  const id = item.id
+  try {
+    if (isFavorited(id)) {
+      await favoriteApi.remove(id)
+      favoriteIds.value.delete(id)
+      ElMessage.success('已取消收藏')
+    } else {
+      await favoriteApi.add(id)
+      favoriteIds.value.add(id)
+      ElMessage.success('已加入收藏')
+    }
+  } catch (err) {
+    ElMessage.error(err.message || '操作失败')
+  }
+}
+
+const fetchCategories = async () => {
+  try {
+    const tree = await productApi.categoryTree()
+    categories.value = (tree || []).map(c => ({
+      ...c,
+      ...getCategoryStyle(c.name)
+    }))
   } catch {
     // ignore
-  } finally {
-    loading.value = false
   }
+}
+
+const fetchFavorites = async () => {
+  try {
+    const ids = await favoriteApi.ids()
+    favoriteIds.value = new Set(ids || [])
+  } catch {
+    // ignore
+  }
+}
+
+// 监听推荐商品列表变化，做曝光上报
+watch(recommendProducts, (list) => {
+  if (list && list.length > 0) {
+    list.forEach(p => reportExpose(p.id))
+  }
+}, { immediate: true })
+
+onMounted(async () => {
+  loading.value = true
+  fetchCategories()
+  fetchFavorites()
+  
+  // 并行拉取各类推荐
+  Promise.all([
+    recommendApi.home().then(res => recommendProducts.value = res).catch(() => {}),
+    recommendApi.featured().then(res => featuredProducts.value = res).catch(() => {}),
+    recommendApi.nearby().then(res => nearbyProducts.value = res).catch(() => {})
+  ]).finally(() => {
+    loading.value = false
+  })
 })
 </script>
 
@@ -243,7 +414,6 @@ onMounted(async () => {
   background: #fff !important;
 }
 
-/* 发布闲置按钮：白色边框 + 半透明底，确保在橙色背景上可见 */
 .banner-btn-outline {
   color: #fff !important;
   border-color: rgba(255,255,255,0.7) !important;
@@ -264,11 +434,7 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
-.illus-circle {
-  position: absolute;
-  border-radius: 50%;
-  opacity: 0.25;
-}
+.illus-circle { position: absolute; border-radius: 50%; opacity: 0.25; }
 .c1 { width: 100px; height: 100px; background: #fff; top: 10px; right: 0; }
 .c2 { width: 60px; height: 60px; background: #fff; bottom: 0; left: 10px; }
 
@@ -280,6 +446,34 @@ onMounted(async () => {
   font-size: 52px;
   filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));
 }
+
+/* ---- Featured Carousel ---- */
+.featured-section {
+  padding: 10px 0;
+}
+.featured-card {
+  height: 100%;
+  position: relative;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  cursor: pointer;
+}
+.featured-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.featured-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px;
+  background: linear-gradient(transparent, rgba(0,0,0,0.7));
+  color: #fff;
+}
+.featured-title { display: block; font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.featured-price { font-size: 16px; font-weight: 700; color: #ffeb3b; }
 
 /* ---- 分类 ---- */
 .category-section {
@@ -353,6 +547,12 @@ onMounted(async () => {
   color: var(--c-text-primary);
 }
 
+.section-subtitle {
+  font-size: 12px;
+  color: var(--c-text-tertiary);
+  margin-top: 2px;
+}
+
 .section-more {
   font-size: 13px;
   color: var(--c-primary);
@@ -414,6 +614,24 @@ onMounted(async () => {
   backdrop-filter: blur(4px);
 }
 
+.fav-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.8);
+  border: none;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: var(--c-text-tertiary);
+  transition: all 0.2s;
+}
+.fav-btn:hover { transform: scale(1.1); background: #fff; }
+.fav-btn.active { color: #ff9800; background: #fff; }
+
 .card-body { padding: 10px 12px 12px; }
 
 .card-title {
@@ -461,30 +679,18 @@ onMounted(async () => {
   overflow: hidden;
 }
 
-.card-seller span {
+.card-seller .seller-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
 }
 
-/* Skeleton */
-.products-skeleton {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 14px;
-}
-
-.skeleton-card {
-  height: 260px;
-  border-radius: var(--radius-md);
-  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.4s infinite;
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+.seller-score {
+  color: #faad14;
+  font-weight: 700;
+  margin-left: 2px;
+  flex-shrink: 0;
 }
 
 /* Detail Drawer */
@@ -496,6 +702,16 @@ onMounted(async () => {
   object-fit: contain;
   background: #f5f5f5;
   display: block;
+}
+
+.detail-video-wrap {
+  margin-top: 4px;
+}
+.detail-video {
+  width: 100%;
+  max-height: 240px;
+  background: #000;
+  border-radius: var(--radius-sm);
 }
 
 .detail-no-img {
@@ -546,10 +762,27 @@ onMounted(async () => {
   border-top: 1px solid var(--c-border-soft);
 }
 
-.detail-seller-name {
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--c-text-primary);
+.detail-seller-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.detail-seller-name { font-weight: 600; font-size: 14px; color: var(--c-text-primary); }
+.auth-tag { font-size: 10px; height: 18px; padding: 0 4px; line-height: 16px; }
+
+.detail-seller-score { font-size: 12px; color: #faad14; font-weight: 600; margin-bottom: 4px; }
+
+/* Drawer Footer */
+.drawer-footer-btns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+.drawer-footer-btns .el-button {
+  margin: 0 !important;
 }
 
 /* 响应式 */

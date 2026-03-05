@@ -10,7 +10,9 @@ export const orderStatusText = (value) => mapText(value, {
   PENDING_REVIEW: '待评价',
   COMPLETED: '已完成',
   CANCELED: '已取消',
-  CLOSED: '已关闭'
+  CLOSED: '已关闭',
+  REFUNDING: '退款中',
+  REFUNDED: '已退款'
 })
 
 export const refundStatusText = (value) => mapText(value, {
@@ -21,6 +23,7 @@ export const refundStatusText = (value) => mapText(value, {
   RETURN_REQUIRED: '待买家退货',
   BUYER_SHIPPED: '买家已寄回',
   FINISHED: '已完成',
+  COMPLETED: '已完成',
   CANCELED: '已取消'
 })
 
@@ -59,6 +62,8 @@ export const alertStatusText = (value) => mapText(value, {
 })
 
 export const alertLevelText = (value) => mapText(value, {
+  ERROR: '严重',
+  WARN: '预警',
   CRITICAL: '严重',
   HIGH: '高',
   MEDIUM: '中',
@@ -85,6 +90,7 @@ export const roleText = (roles) => {
 
 export const notifyTypeText = (value) => mapText(value, {
   MONITOR_ALERT: '监控告警',
+  MONITOR_ALERT_ERROR: '监控严重告警',
   ORDER: '订单通知',
   CHAT: '聊天通知',
   DISPUTE: '纠纷通知',

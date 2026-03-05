@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +28,7 @@ public class MonitorService {
     private final double cpuThreshold;
     private final double processCpuThreshold;
     private final double jvmMemoryUsageThreshold;
+    private final double diskUsageThreshold;
     private final double avgResponseThresholdMs;
     private final double redisHitRateThreshold;
     private final long alertCooldownSeconds;
@@ -40,6 +42,7 @@ public class MonitorService {
                           @Value("${app.monitor.alert.cpu-threshold:0.85}") double cpuThreshold,
                           @Value("${app.monitor.alert.process-cpu-threshold:0.85}") double processCpuThreshold,
                           @Value("${app.monitor.alert.jvm-memory-usage-threshold:0.90}") double jvmMemoryUsageThreshold,
+                          @Value("${app.monitor.alert.disk-usage-threshold:0.90}") double diskUsageThreshold,
                           @Value("${app.monitor.alert.avg-response-ms-threshold:500}") double avgResponseThresholdMs,
                           @Value("${app.monitor.alert.redis-hit-rate-threshold:0.70}") double redisHitRateThreshold,
                           @Value("${app.monitor.alert.cooldown-seconds:600}") long alertCooldownSeconds) {
@@ -51,6 +54,7 @@ public class MonitorService {
         this.cpuThreshold = cpuThreshold;
         this.processCpuThreshold = processCpuThreshold;
         this.jvmMemoryUsageThreshold = jvmMemoryUsageThreshold;
+        this.diskUsageThreshold = diskUsageThreshold;
         this.avgResponseThresholdMs = avgResponseThresholdMs;
         this.redisHitRateThreshold = redisHitRateThreshold;
         this.alertCooldownSeconds = alertCooldownSeconds;
@@ -98,30 +102,47 @@ public class MonitorService {
 
         Map<String, Object> requestMetrics = requestMetricsService.snapshot();
         double avgResponseMs = ((Number) requestMetrics.getOrDefault("avgResponseMs", 0D)).doubleValue();
+        double inboundBps = ((Number) requestMetrics.getOrDefault("inboundBytesPerSecond", 0D)).doubleValue();
+        double outboundBps = ((Number) requestMetrics.getOrDefault("outboundBytesPerSecond", 0D)).doubleValue();
+
+        // 磁盘指标
+        File root = new File("/");
+        long diskTotal = root.getTotalSpace();
+        long diskFree = root.getFreeSpace();
+        double diskUsage = diskTotal == 0 ? 0 : (double) (diskTotal - diskFree) / diskTotal;
 
         List<MonitorAlertDto> alerts = evaluateAlerts(
                 osBean.getSystemCpuLoad(),
                 osBean.getProcessCpuLoad(),
                 jvmMemoryUsage,
+                diskUsage,
                 avgResponseMs,
                 redisHitRate,
                 dbUp,
                 redisUp
         );
 
+        Map<String, Object> serverMetrics = new LinkedHashMap<>();
+        serverMetrics.put("cpuLoad", osBean.getSystemCpuLoad());
+        serverMetrics.put("processCpuLoad", osBean.getProcessCpuLoad());
+        serverMetrics.put("availableProcessors", osBean.getAvailableProcessors());
+        serverMetrics.put("systemLoadAverage", osBean.getSystemLoadAverage());
+        serverMetrics.put("jvmUsedMemory", usedMem);
+        serverMetrics.put("jvmTotalMemory", totalMem);
+        serverMetrics.put("jvmMemoryUsage", jvmMemoryUsage);
+        serverMetrics.put("diskTotal", diskTotal);
+        serverMetrics.put("diskFree", diskFree);
+        serverMetrics.put("diskUsage", diskUsage);
+        serverMetrics.put("networkInboundBps", inboundBps);
+        serverMetrics.put("networkOutboundBps", outboundBps);
+        serverMetrics.put("networkTotalBps", inboundBps + outboundBps);
+
         return Map.of(
-                "server", Map.of(
-                        "cpuLoad", osBean.getSystemCpuLoad(),
-                        "processCpuLoad", osBean.getProcessCpuLoad(),
-                        "availableProcessors", osBean.getAvailableProcessors(),
-                        "systemLoadAverage", osBean.getSystemLoadAverage(),
-                        "jvmUsedMemory", usedMem,
-                        "jvmTotalMemory", totalMem,
-                        "jvmMemoryUsage", jvmMemoryUsage
-                ),
+                "server", serverMetrics,
                 "application", Map.of(
                         "uptimeMillis", ManagementFactory.getRuntimeMXBean().getUptime(),
                         "threadCount", ManagementFactory.getThreadMXBean().getThreadCount(),
+                        "onlineUsers", requestMetrics.getOrDefault("onlineUserCount", 0L),
                         "requestMetrics", requestMetrics
                 ),
                 "database", Map.of("mysqlUp", dbUp),
@@ -139,6 +160,7 @@ public class MonitorService {
                         "cpuThreshold", cpuThreshold,
                         "processCpuThreshold", processCpuThreshold,
                         "jvmMemoryUsageThreshold", jvmMemoryUsageThreshold,
+                        "diskUsageThreshold", diskUsageThreshold,
                         "avgResponseThresholdMs", avgResponseThresholdMs,
                         "redisHitRateThreshold", redisHitRateThreshold
                 ),
@@ -158,11 +180,28 @@ public class MonitorService {
             if (now - last < alertCooldownSeconds) {
                 continue;
             }
-            notificationService.createForAdmins("MONITOR_ALERT", alert.title(), alert.message());
+            notifyByLevel(alert);
             lastAlertEpoch.put(alert.key(), now);
             notified++;
         }
         return notified;
+    }
+
+    private void notifyByLevel(MonitorAlertDto alert) {
+        String level = alert.level() == null ? "WARN" : alert.level().toUpperCase();
+        if ("ERROR".equals(level)) {
+            notificationService.createForAdmins(
+                    "MONITOR_ALERT_ERROR",
+                    "[ERROR] " + alert.title(),
+                    alert.message()
+            );
+            return;
+        }
+        notificationService.createForAdmins(
+                "MONITOR_ALERT",
+                "[WARN] " + alert.title(),
+                alert.message()
+        );
     }
 
     public Map<String, Object> mysqlSlowQueryDetails(Integer limit) {
@@ -197,6 +236,7 @@ public class MonitorService {
     private List<MonitorAlertDto> evaluateAlerts(double cpuLoad,
                                                  double processCpuLoad,
                                                  double jvmMemoryUsage,
+                                                 double diskUsage,
                                                  double avgResponseMs,
                                                  double redisHitRate,
                                                  boolean dbUp,
@@ -205,36 +245,49 @@ public class MonitorService {
         long now = Instant.now().toEpochMilli();
         long expireAt = now + (alertCooldownSeconds * 1000);
         if (cpuLoad >= cpuThreshold) {
+            String level = metricLevel(cpuLoad, cpuThreshold, 1.15);
             alerts.add(newAlert(
-                    "cpu_high", "WARN", "CPU使用率过高",
+                    "cpu_high", level, "CPU使用率过高",
                     "系统CPU使用率达到 " + round4(cpuLoad) + "，阈值 " + round4(cpuThreshold),
                     cpuLoad, cpuThreshold, now, expireAt
             ));
         }
         if (processCpuLoad >= processCpuThreshold) {
+            String level = metricLevel(processCpuLoad, processCpuThreshold, 1.15);
             alerts.add(newAlert(
-                    "process_cpu_high", "WARN", "进程CPU使用率过高",
+                    "process_cpu_high", level, "进程CPU使用率过高",
                     "应用进程CPU使用率达到 " + round4(processCpuLoad) + "，阈值 " + round4(processCpuThreshold),
                     processCpuLoad, processCpuThreshold, now, expireAt
             ));
         }
         if (jvmMemoryUsage >= jvmMemoryUsageThreshold) {
+            String level = metricLevel(jvmMemoryUsage, jvmMemoryUsageThreshold, 1.10);
             alerts.add(newAlert(
-                    "jvm_memory_high", "WARN", "JVM内存占用过高",
+                    "jvm_memory_high", level, "JVM内存占用过高",
                     "JVM内存使用率达到 " + round4(jvmMemoryUsage) + "，阈值 " + round4(jvmMemoryUsageThreshold),
                     jvmMemoryUsage, jvmMemoryUsageThreshold, now, expireAt
             ));
         }
-        if (avgResponseMs >= avgResponseThresholdMs) {
+        if (diskUsage >= diskUsageThreshold) {
+            String level = metricLevel(diskUsage, diskUsageThreshold, 1.05);
             alerts.add(newAlert(
-                    "avg_response_high", "WARN", "接口平均响应时间偏高",
+                    "disk_usage_high", level, "磁盘使用率过高",
+                    "磁盘使用率达到 " + round4(diskUsage) + "，阈值 " + round4(diskUsageThreshold),
+                    diskUsage, diskUsageThreshold, now, expireAt
+            ));
+        }
+        if (avgResponseMs >= avgResponseThresholdMs) {
+            String level = metricLevel(avgResponseMs, avgResponseThresholdMs, 2.0);
+            alerts.add(newAlert(
+                    "avg_response_high", level, "接口平均响应时间偏高",
                     "当前平均响应时间 " + round4(avgResponseMs) + "ms，阈值 " + round4(avgResponseThresholdMs) + "ms",
                     avgResponseMs, avgResponseThresholdMs, now, expireAt
             ));
         }
         if (redisHitRate >= 0 && redisHitRate < redisHitRateThreshold) {
+            String level = redisHitRate < redisHitRateThreshold * 0.6 ? "ERROR" : "WARN";
             alerts.add(newAlert(
-                    "redis_hit_rate_low", "WARN", "Redis命中率偏低",
+                    "redis_hit_rate_low", level, "Redis命中率偏低",
                     "当前命中率 " + round4(redisHitRate) + "，阈值 " + round4(redisHitRateThreshold),
                     redisHitRate, redisHitRateThreshold, now, expireAt
             ));
@@ -248,12 +301,19 @@ public class MonitorService {
         }
         if (!redisUp) {
             alerts.add(newAlert(
-                    "redis_down", "ERROR", "Redis连接异常",
-                    "Redis健康检查失败，请检查缓存服务状态",
+                    "redis_down", "WARN", "Redis连接异常",
+                    "Redis连接失败，系统已自动切换至本地内存保底模式，核心功能（验证码等）暂不受影响",
                     0, 0, now, expireAt
             ));
         }
         return alerts;
+    }
+
+    private String metricLevel(double current, double threshold, double errorMultiplier) {
+        if (threshold <= 0) {
+            return "WARN";
+        }
+        return current >= threshold * errorMultiplier ? "ERROR" : "WARN";
     }
 
     private MonitorAlertDto newAlert(String key, String level, String title, String message,

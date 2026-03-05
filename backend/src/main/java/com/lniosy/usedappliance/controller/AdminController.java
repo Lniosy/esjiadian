@@ -29,13 +29,15 @@ public class AdminController {
     private final SmsMockService smsMockService;
     private final ChatReportAdminService chatReportAdminService;
     private final OperationLogService operationLogService;
+    private final ErrorLogService errorLogService;
 
     public AdminController(AdminService adminService, ProductService productService,
                            UserService userService, DisputeService disputeService,
                            MonitorService monitorService, MonitorAlertEventService monitorAlertEventService,
                            EvaluationService evaluationService, SmsMockService smsMockService,
                            ChatReportAdminService chatReportAdminService,
-                           OperationLogService operationLogService) {
+                           OperationLogService operationLogService,
+                           ErrorLogService errorLogService) {
         this.adminService = adminService;
         this.productService = productService;
         this.userService = userService;
@@ -46,6 +48,7 @@ public class AdminController {
         this.smsMockService = smsMockService;
         this.chatReportAdminService = chatReportAdminService;
         this.operationLogService = operationLogService;
+        this.errorLogService = errorLogService;
     }
 
     @GetMapping("/users")
@@ -177,6 +180,13 @@ public class AdminController {
     @GetMapping("/operation-logs")
     public ApiResponse<?> operationLogs(@RequestParam(defaultValue = "100") Integer limit) {
         return ApiResponse.ok(operationLogService.latest(limit));
+    }
+
+    @GetMapping("/error-logs")
+    public ApiResponse<?> errorLogs(@RequestParam(defaultValue = "100") Integer limit,
+                                    @RequestParam(required = false) Integer httpStatus,
+                                    @RequestParam(required = false) String keyword) {
+        return ApiResponse.ok(errorLogService.latest(limit, httpStatus, keyword));
     }
 
     @GetMapping("/chat-reports")

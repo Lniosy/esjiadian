@@ -36,10 +36,12 @@ public class OrderService {
     private final UserAddressMapper userAddressMapper;
     private final ProductService productService;
     private final NotificationService notificationService;
+    private final RecommendTraceService recommendTraceService;
 
     public OrderService(CartMapper cartMapper, OrderInfoMapper orderInfoMapper, OrderItemMapper orderItemMapper,
                         ProductMapper productMapper, UserAddressMapper userAddressMapper,
-                        ProductService productService, NotificationService notificationService) {
+                        ProductService productService, NotificationService notificationService,
+                        RecommendTraceService recommendTraceService) {
         this.cartMapper = cartMapper;
         this.orderInfoMapper = orderInfoMapper;
         this.orderItemMapper = orderItemMapper;
@@ -47,6 +49,7 @@ public class OrderService {
         this.userAddressMapper = userAddressMapper;
         this.productService = productService;
         this.notificationService = notificationService;
+        this.recommendTraceService = recommendTraceService;
     }
 
     public List<CartItemDto> listCart(Long userId) {
@@ -78,6 +81,7 @@ public class OrderService {
             cart.setSelected(true);
             cartMapper.insert(cart);
         }
+        recommendTraceService.recordEvent(userId, productId, "CART", 2.5);
     }
 
     public void removeCart(Long userId, Long productId) {
@@ -148,6 +152,7 @@ public class OrderService {
         orderItemMapper.insert(item);
 
         removeCart(buyerId, req.productId());
+        recommendTraceService.recordEvent(buyerId, req.productId(), "ORDER_CREATE", 3.0);
         notificationService.create(product.sellerId(), "ORDER", "新订单待支付", "订单号: " + orderNo);
         return toDto(order, req.productId());
     }

@@ -18,6 +18,7 @@ import com.lniosy.usedappliance.mapper.ShopMapper;
 import com.lniosy.usedappliance.mapper.SysUserMapper;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -26,13 +27,16 @@ public class ProductService {
     private final ProductImageMapper productImageMapper;
     private final SysUserMapper sysUserMapper;
     private final ShopMapper shopMapper;
+    private final RecommendTraceService recommendTraceService;
 
     public ProductService(ProductMapper productMapper, ProductImageMapper productImageMapper,
-                          SysUserMapper sysUserMapper, ShopMapper shopMapper) {
+                          SysUserMapper sysUserMapper, ShopMapper shopMapper,
+                          RecommendTraceService recommendTraceService) {
         this.productMapper = productMapper;
         this.productImageMapper = productImageMapper;
         this.sysUserMapper = sysUserMapper;
         this.shopMapper = shopMapper;
+        this.recommendTraceService = recommendTraceService;
     }
 
     public ProductDto create(Long sellerId, ProductCreateRequest req) {
@@ -48,7 +52,7 @@ public class ProductService {
         product.setBrand(req.brand());
         product.setModel(req.model());
         product.setPurchaseDate(req.purchaseDate());
-        product.setConditionLevel(req.conditionLevel());
+        product.setConditionLevel(normalizeConditionLevel(req.conditionLevel()));
         product.setFunctionStatus(req.functionStatus());
         product.setRepairHistory(req.repairHistory());
         product.setDescription(req.description());
@@ -78,7 +82,7 @@ public class ProductService {
         old.setBrand(req.brand());
         old.setModel(req.model());
         old.setPurchaseDate(req.purchaseDate());
-        old.setConditionLevel(req.conditionLevel());
+        old.setConditionLevel(normalizeConditionLevel(req.conditionLevel()));
         old.setFunctionStatus(req.functionStatus());
         old.setRepairHistory(req.repairHistory());
         old.setDescription(req.description());
@@ -97,14 +101,23 @@ public class ProductService {
     }
 
     public ProductDto detail(Long id) {
+        return detail(id, null);
+    }
+
+    public ProductDto detail(Long id, Long viewerId) {
         Product p = productMapper.selectById(id);
         if (p == null) {
             throw new BizException(404, "商品不存在");
         }
+        recommendTraceService.recordEvent(viewerId, p.getId(), "DETAIL_VIEW", 1.0);
         return toDto(p);
     }
 
     public PageResult<ProductDto> list(ProductQuery q) {
+        return list(q, null);
+    }
+
+    public PageResult<ProductDto> list(ProductQuery q, Long viewerId) {
         int pageNum = q.pageNum() == null ? 1 : q.pageNum();
         int pageSize = q.pageSize() == null ? 10 : q.pageSize();
         LambdaQueryWrapper<Product> qw = new LambdaQueryWrapper<Product>()
@@ -116,15 +129,32 @@ public class ProductService {
         }
         if (q.categoryId() != null) qw.eq(Product::getCategoryId, q.categoryId());
         if (q.sellerId() != null) qw.eq(Product::getSellerId, q.sellerId());
-        if (q.conditionLevel() != null) qw.eq(Product::getConditionLevel, q.conditionLevel());
+        if (q.conditionLevel() != null && !q.conditionLevel().isBlank()) {
+            List<String> conditionCandidates = conditionQueryCandidates(q.conditionLevel());
+            if (!conditionCandidates.isEmpty()) {
+                if (conditionCandidates.size() == 1) {
+                    qw.eq(Product::getConditionLevel, conditionCandidates.get(0));
+                } else {
+                    qw.in(Product::getConditionLevel, conditionCandidates);
+                }
+            }
+        }
         if (q.functionStatus() != null) qw.eq(Product::getFunctionStatus, q.functionStatus());
-        if (q.region() != null) qw.eq(Product::getRegion, q.region());
+        if (q.region() != null && !q.region().isBlank()) qw.eq(Product::getRegion, q.region().trim());
         if (q.tradeMethod() != null && !q.tradeMethod().isBlank()) qw.like(Product::getTradeMethods, q.tradeMethod());
         if (q.minPrice() != null) qw.ge(Product::getPrice, q.minPrice());
         if (q.maxPrice() != null) qw.le(Product::getPrice, q.maxPrice());
         applySorting(qw, q.sortBy());
 
         Page<Product> page = productMapper.selectPage(new Page<>(pageNum, pageSize), qw);
+        if (viewerId != null && viewerId > 0) {
+            boolean hasKeyword = q.keyword() != null && !q.keyword().isBlank();
+            String eventType = hasKeyword ? "SEARCH_EXPOSE" : "LIST_EXPOSE";
+            double eventScore = hasKeyword ? searchExposeScore(q.keyword()) : 0.3;
+            page.getRecords().stream()
+                    .limit(20)
+                    .forEach(p -> recommendTraceService.recordEvent(viewerId, p.getId(), eventType, eventScore));
+        }
         List<ProductDto> list = page.getRecords().stream().map(this::toDto).toList();
         return new PageResult<>(list, page.getTotal(), pageNum, pageSize, (int) page.getPages());
     }
@@ -218,6 +248,69 @@ public class ProductService {
         }
     }
 
+    private String normalizeConditionLevel(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        String value = raw.trim();
+        if (value.isEmpty()) {
+            return value;
+        }
+        String upper = value.toUpperCase();
+        return switch (upper) {
+            case "NEW", "全新" -> "NEW";
+            case "LIKE_NEW", "99新", "95新", "9.5成新" -> "LIKE_NEW";
+            case "GOOD", "9成新" -> "GOOD";
+            case "FAIR", "8成新及以下", "8成新以下", "7成新及以下" -> "FAIR";
+            default -> value;
+        };
+    }
+
+    private List<String> conditionQueryCandidates(String raw) {
+        String normalized = normalizeConditionLevel(raw);
+        if (normalized == null || normalized.isBlank()) {
+            return List.of();
+        }
+        return switch (normalized) {
+            case "NEW" -> List.of("NEW", "全新");
+            case "LIKE_NEW" -> List.of("LIKE_NEW", "99新", "95新", "9.5成新");
+            case "GOOD" -> List.of("GOOD", "9成新");
+            case "FAIR" -> List.of("FAIR", "8成新及以下", "8成新以下", "7成新及以下");
+            default -> List.of(normalized);
+        };
+    }
+
+    private double searchExposeScore(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return 0.8;
+        }
+        int len = keyword.trim().length();
+        double score = 0.8 + Math.min(0.6, len * 0.06);
+        return Math.min(1.4, score);
+    }
+
+    private String displayConditionLevel(String stored) {
+        String normalized = normalizeConditionLevel(stored);
+        if (normalized == null || normalized.isBlank()) {
+            return stored;
+        }
+        return switch (normalized) {
+            case "NEW" -> "全新";
+            case "LIKE_NEW" -> "95新";
+            case "GOOD" -> "9成新";
+            case "FAIR" -> "8成新及以下";
+            default -> stored;
+        };
+    }
+
+    private double sellerScoreValue(SysUser seller) {
+        if (seller == null || seller.getSellerScore() == null) {
+            return 5.0;
+        }
+        BigDecimal score = seller.getSellerScore();
+        return score.doubleValue();
+    }
+
     private ProductDto toDto(Product p) {
         SysUser seller = sysUserMapper.selectById(p.getSellerId());
         // 查询卖家店铺名称，优先使用店铺名展示
@@ -234,9 +327,18 @@ public class ProductService {
                 seller == null ? "未知用户" : seller.getNickname(),
                 seller == null ? "" : seller.getAvatarUrl(),
                 shopName, shopLogo,
+                sellerScoreValue(seller),
+                sellerAuthStatusValue(seller),
                 p.getTitle(), p.getCategoryId(), p.getBrand(), p.getModel(),
-                p.getPurchaseDate(), p.getConditionLevel(), p.getFunctionStatus(), p.getRepairHistory(),
+                p.getPurchaseDate(), displayConditionLevel(p.getConditionLevel()), p.getFunctionStatus(), p.getRepairHistory(),
                 p.getDescription(), p.getVideoUrl(), p.getPrice(), p.getOriginalPrice(),
                 p.getRegion(), p.getTradeMethods(), p.getStatus(), p.getRejectReason(), p.getSold(), p.getSalesCount(), images);
+    }
+
+    private String sellerAuthStatusValue(SysUser seller) {
+        if (seller == null || seller.getAuthStatus() == null || seller.getAuthStatus().isBlank()) {
+            return "NOT_SUBMITTED";
+        }
+        return seller.getAuthStatus();
     }
 }

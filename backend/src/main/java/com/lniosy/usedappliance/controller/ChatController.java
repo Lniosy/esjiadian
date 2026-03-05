@@ -34,7 +34,7 @@ public class ChatController {
 
     @GetMapping("/messages")
     public ApiResponse<List<ChatMessageDto>> messages(@RequestParam String conversationId) {
-        return ApiResponse.ok(chatService.list(conversationId));
+        return ApiResponse.ok(chatService.list(conversationId, SecurityUtils.currentUserId()));
     }
 
     @PostMapping("/messages")

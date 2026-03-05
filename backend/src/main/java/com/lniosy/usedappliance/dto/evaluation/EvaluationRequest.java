@@ -1,17 +1,14 @@
 package com.lniosy.usedappliance.dto.evaluation;
 
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.*;
 
 import java.util.List;
 
 public record EvaluationRequest(
         @NotNull Long productId,
         @Min(1) @Max(5) int score,
-        @NotBlank String content,
-        List<String> images,
+        @NotBlank @Size(min = 10, max = 500) String content,
+        @Size(max = 6) List<String> images,
         List<String> tags
 ) {
 }

@@ -31,7 +31,7 @@ public class AuthCodeService {
         } catch (Exception ignored) {
             // Redis 异常时保底走内存缓存，避免验证码流程不可用
         }
-        return new SendCodeResponse(normalized, code, EXPIRE_SECONDS, true);
+        return SendCodeResponse.of(normalized, code, EXPIRE_SECONDS, true);
     }
 
     public void validateAndConsume(String account, String verifyCode) {
@@ -67,7 +67,16 @@ public class AuthCodeService {
         if (account == null || account.isBlank()) {
             throw new BizException(400, "账号不能为空");
         }
-        return account.trim();
+        String normalized = account.trim();
+        // 手机号格式校验 (11位数字)
+        boolean isPhone = normalized.matches("^1[3-9]\\d{9}$");
+        // 邮箱格式校验
+        boolean isEmail = normalized.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$");
+
+        if (!isPhone && !isEmail) {
+            throw new BizException(400, "账号格式不正确，请输入正确的手机号或邮箱");
+        }
+        return normalized;
     }
 
     private String redisKey(String account) {

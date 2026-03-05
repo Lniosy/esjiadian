@@ -43,6 +43,7 @@
             :view-mode="orderFlow.viewMode"
             @select-order="orderFlow.setSelectedOrder"
             @open-drawer="handleOpenDrawer"
+            @success="handleActionSuccess"
           />
         </el-tab-pane>
 
@@ -77,6 +78,7 @@
       :order="orderFlow.selectedOrder"
       :view-mode="orderFlow.viewMode"
       @open-drawer="handleOpenDrawer"
+      @success="handleActionSuccess"
     />
 
     <ShipmentDrawer

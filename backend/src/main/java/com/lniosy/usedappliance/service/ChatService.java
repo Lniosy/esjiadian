@@ -37,7 +37,12 @@ public class ChatService {
         return toDto(m);
     }
 
-    public List<ChatMessageDto> list(String conversationId) {
+    public List<ChatMessageDto> list(String conversationId, Long userId) {
+        // 校验用户是否为会话参与者
+        String[] ids = conversationId.split("_");
+        if (ids.length != 2 || (!ids[0].equals(String.valueOf(userId)) && !ids[1].equals(String.valueOf(userId)))) {
+            throw new BizException(403, "无权查看该会话消息");
+        }
         return chatMessageMapper.selectList(new LambdaQueryWrapper<ChatMessage>()
                         .eq(ChatMessage::getConversationId, conversationId)
                         .orderByAsc(ChatMessage::getId))

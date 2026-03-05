@@ -19,7 +19,7 @@ public class NotificationService {
     private final SysUserMapper sysUserMapper;
     private final SmsMockService smsMockService;
     private static final Set<String> IMPORTANT_SMS_TYPES = Set.of(
-            "ORDER", "PAYMENT", "REFUND", "DISPUTE", "LOGISTICS", "MONITOR_ALERT"
+            "ORDER", "PAYMENT", "REFUND", "DISPUTE", "LOGISTICS", "MONITOR_ALERT", "MONITOR_ALERT_ERROR"
     );
 
     public NotificationService(NotificationMapper notificationMapper, SysUserMapper sysUserMapper,
